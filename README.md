@@ -1,6 +1,6 @@
 # Phoenix Hub
 
-当前版本：**0.5.0**
+当前版本：**0.5.1**
 
 Phoenix Hub 是 Phoenix 工作区内开发服务的本机控制台。它用一个 Node 进程、一个端口同时提供 Web 工作台和控制 API，不再要求记住每个仓库的启动命令与端口。
 
@@ -10,6 +10,8 @@ Phoenix Hub 是 Phoenix 工作区内开发服务的本机控制台。它用一�
 - GitHub（`github`）：[phoenixwing-org/phoenix-hub](https://github.com/phoenixwing-org/phoenix-hub)
 
 提交前可用 `git remote -v` 核对两个正式远端；默认远端仍是 Gitee 的 `origin`，不会自动向 GitHub 推送。
+
+跨仓任务试行以各仓主目录当前检出的版本号分支作为本轮目标发布线。`develop` 只提供开发/测试基线提示，不能据此默认决定合入目标；每次提交、合并、变基或发布前都必须重新核对主目录实际分支与发布意图。进行中开发 worktree 统一放在 Phoenix 工作区同级的非隐藏 `worktrees/` 下，不新建 `.worktrees`，也不清理用途不明的旧工作区。
 
 ```text
 http://127.0.0.1:42100
@@ -78,7 +80,7 @@ Host 自身已归档的 override/patch 由 package assembly 按精确提交和�
 
 `pnpm dev` 只开发 Hub 自身，也必须使用上述 Registry 依赖。本机用户配置可以为
 “Admin 进行中”服务显式注入 `PHOENIX_WING_ROOT`，但该服务只能标记为
-`LOCAL in-progress`，不得作为 Hub、稳定服务或正式装配的 Registry 证据。稳定线统一标记为
+`LOCAL 0.7.2 · in-progress`，不得作为 Hub、稳定服务或正式装配的 Registry 证据。稳定线统一标记为
 `Registry 0.7.2=7563cba`。
 
 ## 开发与构建
@@ -120,7 +122,7 @@ Wing、Vue 或通用基础设施：
 cp config/sample/services.sample.json config/services.user.json
 ```
 
-Hub 不会自动执行 sample；复制后必须复核 `.worktrees`、commit、SHA、integrity、数据库与端口。`services.user.json` 不进入 Git，由使用者与 `.runtime` 一起自行备份。为兼容早期安装，未迁移的 `config/services.json` 仍可读取，但也已受 Git 忽略。加载优先级为 `services.user.json`、旧 `services.json`；两者都不存在时启动会明确提示初始化。每个实际清单项必须包含：
+Hub 不会自动执行 sample；复制后必须复核 `worktrees/`、commit、SHA、integrity、数据库与端口。`services.user.json` 不进入 Git，由使用者与 `.runtime` 一起自行备份。为兼容早期安装，未迁移的 `config/services.json` 仍可读取，但也已受 Git 忽略。加载优先级为 `services.user.json`、旧 `services.json`；两者都不存在时启动会明确提示初始化。每个实际清单项必须包含：
 
 Windows 与 Linux 的完整目录示例、Admin Host worktree 创建、Open Issue / Acme 品牌插件开发挂载流程见
 [`docs/本地配置指南.md`](docs/本地配置指南.md)。对应文件为

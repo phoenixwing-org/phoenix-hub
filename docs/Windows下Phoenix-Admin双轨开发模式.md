@@ -5,7 +5,7 @@
 ## 1. 动态兼容基线
 
 - Phoenix Hub 的版本和 package manager 以 `E:\phoenix\phoenix-hub\package.json` 为准。
-- Admin Vue、Admin Node、Open Issue、Phoenix Wing 与 Branding 使用任务指定的 Git 分支；日常双轨示例通常从 `develop` 创建 `inprocess`，但归档不固定 commit SHA。
+- Admin Vue、Admin Node、Open Issue、Phoenix Wing 与 Branding 先读取各仓主目录当前检出的版本号分支，并将它视为该轮目标发布线；`develop` 只作开发/测试基线提示，不能默认作为合入目标。每次提交、合并、变基或发布前都要重新核对实际分支与发布意图。
 - Open Issue 与 Branding 的插件版本、Host/Wing 兼容范围、入口和校验值以各自 `packages/admin-plugin/manifest.json` 为准。
 - Hub Registry 版本以 Hub 自身依赖和锁文件为准；Hub 不消费相邻 `phoenix-wing` 源码目录。
 - 每次复现都必须先核对分支、工作树状态、Manifest 和 package manager，不能把文档中的示例版本当成远端最新状态。
@@ -18,10 +18,10 @@
 
 `Admin 进行中` 在界面显示为“进行中”。它用于正在修改的 Admin Host 与消费者：
 
-- Vue：`E:\phoenix\.worktrees\inprocess\vue`，本地分支 `inprocess`；
-- Node：`E:\phoenix\.worktrees\inprocess\node`，本地分支 `inprocess`；
-- Issue：`E:\phoenix\.worktrees\inprocess\issue`，本地分支 `inprocess`；
-- 品牌插件：`E:\phoenix\.worktrees\inprocess\branding`，本地分支 `inprocess`；
+- Vue：`E:\phoenix\worktrees\inprocess\vue`，本地分支 `inprocess`；
+- Node：`E:\phoenix\worktrees\inprocess\node`，本地分支 `inprocess`；
+- Issue：`E:\phoenix\worktrees\inprocess\issue`，本地分支 `inprocess`；
+- 品牌插件：`E:\phoenix\worktrees\inprocess\branding`，本地分支 `inprocess`；
 - 插件消费者通过 Windows `Junction` 链接到对应的 inprocess 插件工作树；
 - 端口为 Web `9000`、API `8101`。
 
@@ -70,15 +70,15 @@ Copy-Item config\sample\admin-plugins.windows.sample.json .runtime\admin-plugins
 
 ## 4. 创建进行中工作树
 
-先确认目标目录和本地分支都不存在，再执行：
+先确认目标目录和本地分支都不存在，并将下例末尾的 `develop` 替换为本轮明确选择的开发起点，再执行；它不是默认合入目标：
 
 ```powershell
-New-Item -ItemType Directory -Force E:\phoenix\.worktrees\inprocess | Out-Null
+New-Item -ItemType Directory -Force E:\phoenix\worktrees\inprocess | Out-Null
 
-git -C E:\phoenix\phoenix-admin-vue worktree add -b inprocess E:\phoenix\.worktrees\inprocess\vue develop
-git -C E:\phoenix\phoenix-admin-node worktree add -b inprocess E:\phoenix\.worktrees\inprocess\node develop
-git -C E:\phoenix\phoenix-open-issue worktree add -b inprocess E:\phoenix\.worktrees\inprocess\issue develop
-git -C E:\phoenix\phoenix-branding worktree add -b inprocess E:\phoenix\.worktrees\inprocess\branding develop
+git -C E:\phoenix\phoenix-admin-vue worktree add -b inprocess E:\phoenix\worktrees\inprocess\vue develop
+git -C E:\phoenix\phoenix-admin-node worktree add -b inprocess E:\phoenix\worktrees\inprocess\node develop
+git -C E:\phoenix\phoenix-open-issue worktree add -b inprocess E:\phoenix\worktrees\inprocess\issue develop
+git -C E:\phoenix\phoenix-branding worktree add -b inprocess E:\phoenix\worktrees\inprocess\branding develop
 ```
 
 以上命令只用于空白机器。不得覆盖已经存在的分支或目录，也不得对 dirty 主仓执行强制切换。创建后应逐项确认四个 `inprocess` 工作树的分支和路径。
@@ -86,10 +86,10 @@ git -C E:\phoenix\phoenix-branding worktree add -b inprocess E:\phoenix\.worktre
 随后按每个仓库声明的 package manager 安装：
 
 ```powershell
-pnpm --dir E:\phoenix\.worktrees\inprocess\vue install --frozen-lockfile
-pnpm --dir E:\phoenix\.worktrees\inprocess\node install --frozen-lockfile
-pnpm --dir E:\phoenix\.worktrees\inprocess\issue install --frozen-lockfile
-pnpm --dir E:\phoenix\.worktrees\inprocess\branding install --frozen-lockfile
+pnpm --dir E:\phoenix\worktrees\inprocess\vue install --frozen-lockfile
+pnpm --dir E:\phoenix\worktrees\inprocess\node install --frozen-lockfile
+pnpm --dir E:\phoenix\worktrees\inprocess\issue install --frozen-lockfile
+pnpm --dir E:\phoenix\worktrees\inprocess\branding install --frozen-lockfile
 ```
 
 ## 5. 进行中消费者 Junction
@@ -100,24 +100,24 @@ Open Issue 示例：
 
 ```powershell
 New-Item -ItemType Junction `
-  -Path E:\phoenix\.worktrees\inprocess\vue\src\modules\phoenix-open-issue `
-  -Target E:\phoenix\.worktrees\inprocess\issue\packages\admin-plugin\vue\phoenix-open-issue
+  -Path E:\phoenix\worktrees\inprocess\vue\src\modules\phoenix-open-issue `
+  -Target E:\phoenix\worktrees\inprocess\issue\packages\admin-plugin\vue\phoenix-open-issue
 
 New-Item -ItemType Junction `
-  -Path E:\phoenix\.worktrees\inprocess\node\src\modules\phoenix-open-issue `
-  -Target E:\phoenix\.worktrees\inprocess\issue\packages\admin-plugin\midway\phoenix-open-issue
+  -Path E:\phoenix\worktrees\inprocess\node\src\modules\phoenix-open-issue `
+  -Target E:\phoenix\worktrees\inprocess\issue\packages\admin-plugin\midway\phoenix-open-issue
 ```
 
 Acme 品牌插件的真实 `moduleId` 是 `phoenix-branding`：
 
 ```powershell
 New-Item -ItemType Junction `
-  -Path E:\phoenix\.worktrees\inprocess\vue\src\modules\phoenix-branding `
-  -Target E:\phoenix\.worktrees\inprocess\branding\packages\admin-plugin\vue\phoenix-branding
+  -Path E:\phoenix\worktrees\inprocess\vue\src\modules\phoenix-branding `
+  -Target E:\phoenix\worktrees\inprocess\branding\packages\admin-plugin\vue\phoenix-branding
 
 New-Item -ItemType Junction `
-  -Path E:\phoenix\.worktrees\inprocess\node\src\modules\phoenix-branding `
-  -Target E:\phoenix\.worktrees\inprocess\branding\packages\admin-plugin\midway\phoenix-branding
+  -Path E:\phoenix\worktrees\inprocess\node\src\modules\phoenix-branding `
+  -Target E:\phoenix\worktrees\inprocess\branding\packages\admin-plugin\midway\phoenix-branding
 ```
 
 其他品牌插件仍必须先读取真实 Manifest 再链接，不得从插件名称猜测目录。

@@ -1,5 +1,5 @@
 {
-  "sampleNotice": "复制为 config/services.user.json 后使用；示例按 Phoenix 同级工作区与独立 .worktrees 编排，换机器前必须复核路径、commit、SHA、integrity、数据库与端口。",
+  "sampleNotice": "复制为 config/services.user.json 后使用；示例按 Phoenix 同级工作区与独立 worktrees/ 编排，换机器前必须复核路径、commit、SHA、integrity、数据库与端口。",
   "version": 2,
   "series": [
     {
@@ -125,11 +125,11 @@
               "moduleId": "phoenix-open-issue",
               "version": "0.6.2-admin.0",
               "nodeHost": {
-                "root": "../.worktrees/phoenix-admin-clean-validation/node",
+                "root": "../worktrees/phoenix-admin-clean-validation/node",
                 "commit": "replace-with-node-host-commit"
               },
               "vueHost": {
-                "root": "../.worktrees/phoenix-admin-clean-validation/vue",
+                "root": "../worktrees/phoenix-admin-clean-validation/vue",
                 "commit": "replace-with-vue-host-commit"
               },
               "registryPackages": [
@@ -314,11 +314,11 @@
           "services": {
             "web": {
               "id": "cool-admin-midway4-web",
-              "cwd": "../.worktrees/phoenix-admin-midway4/vue"
+              "cwd": "../worktrees/phoenix-admin-midway4/vue"
             },
             "api": {
               "id": "cool-admin-midway4-api",
-              "cwd": "../.worktrees/phoenix-admin-midway4/node",
+              "cwd": "../worktrees/phoenix-admin-midway4/node",
               "command": {
                 "env": {
                   "MIDWAY4_DB_HOST": "127.0.0.1",

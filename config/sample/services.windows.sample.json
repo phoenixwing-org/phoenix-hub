@@ -78,7 +78,7 @@
             "web": {
               "id": "admin-clean-validation-web",
               "name": "Phoenix Admin 干净验证 Web",
-              "cwd": "E:\\phoenix\\.worktrees\\phoenix-admin-clean-validation\\vue",
+              "cwd": "E:\\phoenix\\worktrees\\phoenix-admin-clean-validation\\vue",
               "command": {
                 "args": ["dev", "--host", "127.0.0.1", "--strictPort", "--port", "9100"]
               },
@@ -95,7 +95,7 @@
             "api": {
               "id": "admin-clean-validation-api",
               "name": "Phoenix Admin 干净验证 API",
-              "cwd": "E:\\phoenix\\.worktrees\\phoenix-admin-clean-validation\\node",
+              "cwd": "E:\\phoenix\\worktrees\\phoenix-admin-clean-validation\\node",
               "command": {
                 "args": ["dev"],
                 "env": {
@@ -175,11 +175,11 @@
           "services": {
             "web": {
               "id": "cool-admin-midway4-web",
-              "cwd": "E:\\phoenix\\.worktrees\\phoenix-admin-midway4\\vue"
+              "cwd": "E:\\phoenix\\worktrees\\phoenix-admin-midway4\\vue"
             },
             "api": {
               "id": "cool-admin-midway4-api",
-              "cwd": "E:\\phoenix\\.worktrees\\phoenix-admin-midway4\\node",
+              "cwd": "E:\\phoenix\\worktrees\\phoenix-admin-midway4\\node",
               "command": {
                 "env": {
                   "MIDWAY4_DB_HOST": "127.0.0.1",

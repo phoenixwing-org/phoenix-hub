@@ -1,5 +1,17 @@
 # 更新日志
 
+## 0.5.1 - 2026-09-02
+
+### 版本
+
+- 将 Phoenix Hub 当前开发版本升级为 `0.5.1`，后续变更等待继续归档。
+
+### 配置
+
+- 新建与示例 worktree 统一使用非隐藏的 `worktrees/` 目录；Hub 当前用户配置和运行时覆盖同步迁移到新路径，保留仍被锁定的 Midway 4 旧路径。
+- 增加跨仓目标发布线试行约定：先读取仓库主目录当前检出的版本号分支，`develop` 仅作开发/测试提示，并在 Git 写操作或发布前重新核对实际分支与发布意图。
+- 复核正式依赖、服务配置、运行时展示与 package-assembled 装配均使用 Registry `phoenix-wing@0.7.2`；进行中源码联调统一标记为 `LOCAL 0.7.2 · in-progress`，不作为 Registry 发布证据。
+
 ## 0.5.0 - 2026-08-31
 
 ### 重构
@@ -18,7 +30,7 @@
 
 ### 依赖
 
-- Hub 自身、稳定服务与正式装配证据统一升级并锁定为 Registry `phoenix-wing@0.7.2`，对应发布源码 `7563cbacee1562ae4861e218daf3ea7517844210`；进行中 Admin 本地 Wing 继续隔离标记为 `LOCAL in-progress`。
+- Hub 自身、稳定服务与正式装配证据统一升级并锁定为 Registry `phoenix-wing@0.7.2`，对应发布源码 `7563cbacee1562ae4861e218daf3ea7517844210`；进行中 Admin 本地 Wing 继续隔离标记为 `LOCAL 0.7.2 · in-progress`。
 
 ## 0.4.2 - 2026-08-28
 
