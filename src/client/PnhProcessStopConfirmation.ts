@@ -22,6 +22,7 @@ export function pnhProcessStopConfirmationText(
 ): string {
   return [
     force ? "强制终止确认" : "关闭外部进程确认",
+    ...(force ? [] : ["工作目录已核对一致，是否停止此外部进程？"]),
     `服务: ${details.serviceId}`,
     `归属: ${details.ownership === "hub" ? "Hub 管理" : "外部进程"}`,
     `端口: ${details.ports.join(", ") || "未配置"}`,

@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
+import { realpathSync, statSync } from "node:fs";
+import path from "node:path";
 import type {
   EndpointStatus,
   HostCapabilitiesResponse,
@@ -103,6 +105,48 @@ export function pnhServiceSpawnEnvironment(
   Object.assign(result, runtimeEnv);
   result[PNH_SERVICE_ID_ENV] = definition.id;
   return result;
+}
+
+interface PnhResolvedServiceSpawnCommand {
+  readonly executable: string;
+  readonly args: readonly string[];
+  readonly inheritedPnpmCli: boolean;
+}
+
+/**
+ * Hub 由 pnpm 启动时，复用父进程已经执行的 pnpm CLI 与当前 Node。
+ * 这样既不依赖 PATH，也不需要在 Windows 上通过 shell 执行 pnpm.cmd。
+ */
+export function pnhResolveServiceSpawnCommand(
+  command: ServiceDefinition["command"],
+  processEnv: NodeJS.ProcessEnv = process.env,
+  nodeExecutable = process.execPath,
+): PnhResolvedServiceSpawnCommand {
+  const executableName = path.basename(command.executable).toLowerCase();
+  if (executableName !== "pnpm" && executableName !== "pnpm.cmd") {
+    return { executable: command.executable, args: command.args, inheritedPnpmCli: false };
+  }
+
+  const inheritedEntrypoint = processEnv.npm_execpath?.trim();
+  if (!inheritedEntrypoint || !path.isAbsolute(inheritedEntrypoint)) {
+    return { executable: command.executable, args: command.args, inheritedPnpmCli: false };
+  }
+  const entrypointName = path.basename(inheritedEntrypoint).toLowerCase();
+  if (!/^pnpm(?:\.(?:c|m)?js)?$/u.test(entrypointName)) {
+    return { executable: command.executable, args: command.args, inheritedPnpmCli: false };
+  }
+
+  try {
+    const entrypointRealpath = realpathSync(inheritedEntrypoint);
+    if (!statSync(entrypointRealpath).isFile()) throw new Error("pnpm CLI 不是普通文件");
+    return {
+      executable: nodeExecutable,
+      args: [entrypointRealpath, ...command.args],
+      inheritedPnpmCli: true,
+    };
+  } catch {
+    return { executable: command.executable, args: command.args, inheritedPnpmCli: false };
+  }
 }
 
 function processCommand(definition: ServiceDefinition): string {
@@ -672,7 +716,11 @@ export class PnhServiceManager {
       runtimeEnv[PNH_CONTROLLED_TOOL_PROFILE_ENV],
     );
     if (controlledToolMessage) logBuffer.append("system", controlledToolMessage);
-    const child = spawn(definition.command.executable, [...definition.command.args], {
+    const spawnCommand = pnhResolveServiceSpawnCommand(definition.command);
+    if (spawnCommand.inheritedPnpmCli) {
+      logBuffer.append("system", "启动解析：复用 Hub 当前 pnpm CLI（不依赖 PATH）");
+    }
+    const child = spawn(spawnCommand.executable, [...spawnCommand.args], {
       cwd: definition.cwd,
       env: spawnEnvironment,
       detached: process.platform !== "win32",
@@ -1007,10 +1055,15 @@ export class PnhServiceManager {
     if (groupMembers.length === 0 || groupMembers.some((item) => !item.startedAt)) {
       throw new HubError("UNVERIFIED_STOP_TARGET", "无法取得稳定启动时间，已拒绝停止", 409);
     }
-    if (ownership === "external" && groupMembers.some((item) => !isPathInside(item.cwd, definition.cwd))) {
+    const mismatchedDirectories = ownership === "external"
+      ? [...new Set(groupMembers
+          .filter((item) => !isPathInside(item.cwd, definition.cwd))
+          .map((item) => item.cwd || "不可用"))]
+      : [];
+    if (mismatchedDirectories.length > 0) {
       throw new HubError(
         "EXTERNAL_CWD_MISMATCH",
-        "外部进程组包含工作目录不匹配的成员，已拒绝停止",
+        `工作目录不一致，不能停止。配置目录：${definition.cwd}；实际目录：${mismatchedDirectories.join("、")}`,
         409,
         groupMembers,
       );

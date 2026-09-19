@@ -236,6 +236,12 @@ export interface ServiceConfigurationFileV2 {
 
 export type NodePackageManager = "pnpm" | "npm" | "yarn" | "bun";
 
+export interface LocalProjectEndpoint {
+  readonly id: string;
+  readonly label: string;
+  readonly port: number;
+}
+
 export interface LocalNodeProject {
   readonly id: string;
   readonly serviceId: string;
@@ -243,6 +249,9 @@ export interface LocalNodeProject {
   readonly directory: string;
   readonly script: string;
   readonly packageManager: NodePackageManager;
+  readonly endpoints?: readonly LocalProjectEndpoint[];
+  /** @deprecated 兼容旧版单端口本机配置；新配置使用 endpoints。 */
+  readonly port?: number;
   readonly createdAt: string;
 }
 
@@ -251,6 +260,9 @@ export interface LocalNodeProjectCandidate {
   readonly directory: string;
   readonly scripts: readonly string[];
   readonly packageManager: NodePackageManager;
+  readonly endpoints: readonly LocalProjectEndpoint[];
+  /** 首个 Web 端口，供旧版表单兼容。 */
+  readonly port?: number;
   readonly configured: boolean;
 }
 
@@ -264,6 +276,7 @@ export interface AddLocalProjectRequest {
   readonly directory: string;
   readonly script: string;
   readonly name?: string;
+  readonly port?: number;
 }
 
 export interface AddLocalProjectResponse {
@@ -284,6 +297,13 @@ export interface LocalProjectTransferItem {
   readonly name: string;
   readonly directory: string;
   readonly script: string;
+  readonly endpoints?: readonly LocalProjectEndpoint[];
+  readonly port?: number;
+}
+
+export interface SelectLocalDirectoryResponse {
+  readonly directory?: string;
+  readonly cancelled: boolean;
 }
 
 export interface LocalProjectTransferDocument {

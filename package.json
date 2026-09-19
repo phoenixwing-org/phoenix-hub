@@ -25,7 +25,7 @@
   "dependencies": {
     "element-plus": "2.14.2",
     "pg": "8.22.0",
-    "phoenix-wing": "0.7.2",
+    "phoenix-wing": "0.7.5",
     "pinia": "3.0.4",
     "vue": "3.5.39"
   },

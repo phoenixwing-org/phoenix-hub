@@ -34,12 +34,12 @@ const lockfile = readFileSync(path.join(projectRoot, "pnpm-lock.yaml"), "utf8");
 const escapedVersion = escapeRegExp(expectedVersion);
 const escapedIntegrity = escapeRegExp(baseline.dist.integrity);
 if (!new RegExp(
-  `\\n      phoenix-wing:\\n        specifier: ${escapedVersion}\\n        version: ${escapedVersion}(?:\\(|\\n)`,
+  `\\r?\\n      phoenix-wing:\\r?\\n        specifier: ${escapedVersion}\\r?\\n        version: ${escapedVersion}(?:\\(|\\r?\\n)`,
 ).test(lockfile)) {
   throw new Error(`pnpm-lock.yaml 未锁定 phoenix-wing importer ${expectedVersion}`);
 }
 if (!new RegExp(
-  `\\n  phoenix-wing@${escapedVersion}:\\n    resolution: \\{integrity: ${escapedIntegrity}\\}`,
+  `\\r?\\n  phoenix-wing@${escapedVersion}:\\r?\\n    resolution: \\{integrity: ${escapedIntegrity}\\}`,
 ).test(lockfile)) {
   throw new Error(`pnpm-lock.yaml 的 phoenix-wing@${expectedVersion} integrity 与发布基线不一致`);
 }

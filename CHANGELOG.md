@@ -10,7 +10,8 @@
 
 - 新建与示例 worktree 统一使用非隐藏的 `worktrees/` 目录；Hub 当前用户配置和运行时覆盖同步迁移到新路径，保留仍被锁定的 Midway 4 旧路径。
 - 增加跨仓目标发布线试行约定：先读取仓库主目录当前检出的版本号分支，`develop` 仅作开发/测试提示，并在 Git 写操作或发布前重新核对实际分支与发布意图。
-- 复核正式依赖、服务配置、运行时展示与 package-assembled 装配均使用 Registry `phoenix-wing@0.7.2`；进行中源码联调统一标记为 `LOCAL 0.7.2 · in-progress`，不作为 Registry 发布证据。
+- 复核正式依赖、服务配置、运行时展示与 package-assembled 装配均使用 Registry `phoenix-wing@0.7.5`；Hub 不提供本地 Wing 联合开发入口。
+- User Node.js 项目启动时复用启动 Hub 的 pnpm CLI，不再依赖 Windows 服务进程 PATH，也不启用 shell。
 
 ## 0.5.0 - 2026-08-31
 
@@ -75,7 +76,7 @@
 ### 改进
 
 - Phoenix Admin Development 的 API 启动简化为纯 `pnpm dev`，不再自动关联数据库初始化或受控测试工具 Profile。
-- Admin Web 开发联调使用 `pnpm dev:local`（`dev:wing-local` 的便捷别名），本地 Wing 模式由本机服务配置决定。
+- Admin Web 开发联调曾使用 `pnpm dev:local`（`dev:wing-local` 的便捷别名）；当前统一为 `pnpm dev` 使用 Registry Wing、`pnpm wing` 使用同级本地 Wing，本地 Wing 模式仍由本机服务配置决定。
 - Admin 插件 View 聚焦 Host 启动与开发挂载，提供清晰的“修改目录”入口。
 - 失效旧登记缺少 `moduleId` 时，可通过受控 Host 链接与 Git marker 安全恢复身份并切换源码目录。
 

@@ -31,6 +31,7 @@ describe("pnhProcessStopConfirmationText", () => {
     expect(text).toContain("cwd: /workspace/admin-node");
     expect(text).toContain("command: node ./bootstrap.js --keepalive");
     expect(text).toContain("确认后仍会重新核验");
+    expect(text).toContain("工作目录已核对一致，是否停止此外部进程？");
     expect(text).not.toContain(details.token);
   });
 

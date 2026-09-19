@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import PnwPageHeader from "phoenix-wing/layout/PnwPageHeader.vue";
+import PnwInformationBlock from "phoenix-wing/components/PnwInformationBlock.vue";
+import type { PnwInformationBlockDefinition } from "phoenix-wing";
 import type {
   BuiltinServiceConfigCatalogResponse,
   BuiltinServiceConfigEntry,
@@ -55,6 +57,7 @@ const manualDirectory = ref("");
 const candidate = ref<LocalNodeProjectCandidate>();
 const displayName = ref("");
 const script = ref("");
+const projectPort = ref("");
 const loading = ref(false);
 const saving = ref(false);
 const deletingProjectId = ref("");
@@ -74,6 +77,18 @@ const availableCandidates = computed(
   () => catalog.value?.candidates.filter((item) => !item.configured) ?? [],
 );
 const formTitle = computed(() => editingProjectId.value ? "编辑 Node.js 项目" : "添加 Node.js 项目");
+const projectSourceBlock = computed<PnwInformationBlockDefinition>(() => ({
+  id: "project-source",
+  title: "项目来源",
+  status: candidate.value ? "已检查" : "待选择",
+  items: [],
+}));
+const projectLaunchBlock = computed<PnwInformationBlockDefinition>(() => ({
+  id: "project-launch",
+  title: "启动设置",
+  status: projectPort.value ? `Web · ${projectPort.value}` : "端口可选",
+  items: [],
+}));
 const viewTitle = computed(() => {
   if (view.value === "list") return "服务设置";
   if (view.value === "import") return "导入服务配置";
@@ -97,7 +112,11 @@ const subviewPrimaryLabel = computed(() => {
 });
 const subviewPrimaryDisabled = computed(() => {
   if (saving.value) return true;
-  if (view.value === "form") return !candidate.value || !script.value || !displayName.value.trim();
+  if (view.value === "form") {
+    const port = Number(projectPort.value);
+    return !candidate.value || !script.value || !displayName.value.trim()
+      || Boolean(projectPort.value && (!Number.isInteger(port) || port < 1 || port > 65_535));
+  }
   if (view.value === "service") return !serviceJson.value.trim();
   if (view.value === "series") return Boolean(editorError.value) || !seriesFormName.value.trim();
   if (view.value === "import") return !importDocument.value;
@@ -137,7 +156,10 @@ function useCandidate(next?: LocalNodeProjectCandidate, resetName = true): void 
   candidate.value = next;
   selectedDirectory.value = next?.directory ?? "";
   manualDirectory.value = next?.directory ?? manualDirectory.value;
-  if (resetName) displayName.value = next?.name ?? "";
+  if (resetName) {
+    displayName.value = next?.name ?? "";
+    projectPort.value = next?.port ? String(next.port) : "";
+  }
   script.value = next?.scripts.includes(script.value) ? script.value : (next?.scripts[0] ?? "");
 }
 
@@ -156,6 +178,7 @@ function resetForm(): void {
   candidate.value = undefined;
   displayName.value = "";
   script.value = "";
+  projectPort.value = "";
 }
 
 function showList(): void {
@@ -360,9 +383,12 @@ async function startEdit(project: LocalNodeProject): Promise<void> {
   manualDirectory.value = project.directory;
   displayName.value = project.name;
   script.value = project.script;
+  projectPort.value = project.port ? String(project.port) : "";
   loading.value = true;
   try {
-    useCandidate(await hubApi.inspectProject(project.directory), false);
+    const inspected = await hubApi.inspectProject(project.directory);
+    useCandidate(inspected, false);
+    if (!project.port && inspected.port) projectPort.value = String(inspected.port);
     script.value = project.script;
   } catch (error) {
     emit("error", error);
@@ -390,6 +416,23 @@ async function inspectManual(): Promise<void> {
   }
 }
 
+async function selectLocalDirectory(): Promise<void> {
+  loading.value = true;
+  try {
+    const selected = await hubApi.selectProjectDirectory();
+    if (!selected.directory) return;
+    manualDirectory.value = selected.directory;
+    useCandidate(
+      await hubApi.inspectProject(selected.directory),
+      !editingProjectId.value,
+    );
+  } catch (error) {
+    emit("error", error);
+  } finally {
+    loading.value = false;
+  }
+}
+
 async function saveProject(): Promise<void> {
   if (!candidate.value || !script.value || !displayName.value.trim()) return;
   saving.value = true;
@@ -398,6 +441,7 @@ async function saveProject(): Promise<void> {
       directory: candidate.value.directory,
       script: script.value,
       name: displayName.value.trim(),
+      ...(projectPort.value ? { port: Number(projectPort.value) } : {}),
     };
     const result = editingProjectId.value
       ? await hubApi.updateProject(editingProjectId.value, input)
@@ -842,59 +886,77 @@ watch(
       </div>
 
       <div v-else-if="view === 'form'" class="dialog-content editor-view project-editor">
-        <label v-if="!editingProjectId">
-          <span>Hub 同级项目</span>
-          <select
-            :value="selectedDirectory"
-            :disabled="loading || availableCandidates.length === 0"
-            @change="selectDiscovered(($event.target as HTMLSelectElement).value)"
-          >
-            <option v-if="availableCandidates.length === 0" value="">没有发现尚未配置的 Node.js 项目</option>
-            <option v-for="item in availableCandidates" :key="item.directory" :value="item.directory">
-              {{ item.name }}
-            </option>
-          </select>
-        </label>
+        <PnwInformationBlock :definition="projectSourceBlock" :collapsible="false" class="project-form-block">
+          <template #footer>
+            <div class="project-form-fields">
+              <label v-if="!editingProjectId">
+                <span>Hub 同级项目</span>
+                <select
+                  :value="selectedDirectory"
+                  :disabled="loading || availableCandidates.length === 0"
+                  @change="selectDiscovered(($event.target as HTMLSelectElement).value)"
+                >
+                  <option v-if="availableCandidates.length === 0" value="">没有发现尚未配置的 Node.js 项目</option>
+                  <option v-for="item in availableCandidates" :key="item.directory" :value="item.directory">
+                    {{ item.name }}
+                  </option>
+                </select>
+              </label>
 
-        <div v-if="!editingProjectId" class="divider"><span>或检查其他本地目录</span></div>
+              <div v-if="!editingProjectId" class="divider"><span>或选择其他本地目录</span></div>
 
-        <label>
-          <span>项目目录</span>
-          <div class="directory-row">
-            <input
-              v-model="manualDirectory"
-              type="text"
-              :placeholder="catalog?.defaultRoot ?? '本机绝对路径'"
-              @keydown.enter.prevent="inspectManual"
-            >
-            <button type="button" :disabled="loading || !manualDirectory.trim()" @click="inspectManual">
-              {{ loading ? '检查中…' : '检查' }}
-            </button>
-          </div>
-        </label>
+              <label>
+                <span>项目目录</span>
+                <div class="directory-row">
+                  <input
+                    v-model="manualDirectory"
+                    type="text"
+                    :placeholder="catalog?.defaultRoot ?? '本机绝对路径'"
+                    @keydown.enter.prevent="inspectManual"
+                  >
+                  <button type="button" :disabled="loading" @click="selectLocalDirectory">选择目录</button>
+                  <button type="button" :disabled="loading || !manualDirectory.trim()" @click="inspectManual">
+                    {{ loading ? '检查中…' : '检查' }}
+                  </button>
+                </div>
+              </label>
+            </div>
+          </template>
+        </PnwInformationBlock>
 
-        <div v-if="candidate" class="project-summary">
-          <strong>{{ candidate.name }}</strong>
-          <code>{{ candidate.directory }}</code>
-          <span>包管理器：{{ candidate.packageManager }}</span>
-        </div>
+        <PnwInformationBlock :definition="projectLaunchBlock" :collapsible="false" class="project-form-block">
+          <template #footer>
+            <div class="project-form-fields">
+              <div v-if="candidate" class="project-summary">
+                <strong>{{ candidate.name }}</strong>
+                <code>{{ candidate.directory }}</code>
+                <span>包管理器：{{ candidate.packageManager }}</span>
+              </div>
 
-        <label>
-          <span>显示名称</span>
-          <input v-model="displayName" type="text" maxlength="120" :disabled="!candidate">
-        </label>
+              <label>
+                <span>显示名称</span>
+                <input v-model="displayName" type="text" maxlength="120" :disabled="!candidate">
+              </label>
 
-        <label>
-          <span>启动脚本</span>
-          <select v-model="script" :disabled="!candidate">
-            <option v-for="item in candidate?.scripts ?? []" :key="item" :value="item">{{ item }}</option>
-          </select>
-        </label>
+              <label>
+                <span>启动脚本</span>
+                <select v-model="script" :disabled="!candidate">
+                  <option v-for="item in candidate?.scripts ?? []" :key="item" :value="item">{{ item }}</option>
+                </select>
+              </label>
 
-        <p class="privacy-note">
-          后端会重新读取 <code>package.json</code> 并生成固定命令；页面不能提交 executable、参数或环境变量。
-          修改运行中的项目会被拒绝。
-        </p>
+              <label>
+                <span>访问端口（可选，自动识别）</span>
+                <input v-model="projectPort" type="number" min="1" max="65535" placeholder="例如 5180" :disabled="!candidate">
+              </label>
+
+              <p class="privacy-note">
+                后端会重新读取 <code>package.json</code> 并生成固定命令；页面不能提交 executable、参数或环境变量。
+                修改运行中的项目会被拒绝。
+              </p>
+            </div>
+          </template>
+        </PnwInformationBlock>
       </div>
 
       <div v-else-if="view === 'service' || view === 'series'" class="dialog-content editor-view service-editor">
@@ -1023,9 +1085,10 @@ watch(
 <style scoped>
 .dialog-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(15, 23, 42, .42); backdrop-filter: blur(2px); }
 .settings-view { width: 100%; height: 100%; min-height: 0; padding: 0; box-sizing: border-box; overflow: hidden; background: var(--pnw-workbench-bg, var(--pnw-workbench-default-bg, #f8fafc)); }
-.project-dialog { width: min(760px, 100%); max-height: min(820px, calc(100vh - 48px)); --pnh-header-control-height: calc(var(--pnw-workbench-view-header-height, 40px) - 8px); display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--pnw-workbench-border, var(--pnw-workbench-default-border, #dbe3ed)); border-radius: 14px; background: var(--pnw-workbench-surface, var(--pnw-workbench-default-surface, #fff)); color: var(--pnw-workbench-text, var(--pnw-workbench-default-text, #0f172a)); box-shadow: 0 24px 80px rgba(15, 23, 42, .28); }
+.project-dialog { width: min(760px, 100%); max-height: min(820px, calc(100vh - 48px)); --pnh-header-control-height: calc(var(--pnw-workbench-view-header-height, 40px) - 8px); --pnw-page-header-title-min-width: 0px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--pnw-workbench-border, var(--pnw-workbench-default-border, #dbe3ed)); border-radius: 14px; background: var(--pnw-workbench-surface, var(--pnw-workbench-default-surface, #fff)); color: var(--pnw-workbench-text, var(--pnw-workbench-default-text, #0f172a)); box-shadow: 0 24px 80px rgba(15, 23, 42, .28); }
 .project-dialog.embedded { width: 100%; height: 100%; max-height: none; min-height: 0; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
 .project-dialog.embedded.subview { width: 100%; height: 100%; max-height: none; min-height: 0; border: 0; border-radius: 0; box-shadow: none; }
+.project-dialog :deep(.pnw-head-row) { grid-template-columns: minmax(0, 1fr) max-content auto; }
 .profile-form-list article > header { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .page-intro { flex: 0 0 auto; margin: 0; padding: 10px 18px 0; color: var(--pnw-workbench-muted, var(--pnw-workbench-default-muted, #64748b)); font-size: 11px; line-height: 1.5; }
 :deep(.pnw-head-actions > button) { min-height: var(--pnh-header-control-height); }
@@ -1066,7 +1129,9 @@ button.danger { border-color: rgba(239, 68, 68, .42); color: #ef4444; }
 button.restore { border-color: rgba(34, 197, 94, .4); color: #22c55e; }
 .management-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .management-toolbar .compact { min-height: 30px; padding: 4px 10px; }
-.directory-row { display: grid; grid-template-columns: 1fr auto; gap: 7px; }
+.project-form-fields { display: grid; gap: 14px; color: var(--pnw-workbench-text, var(--pnw-workbench-default-text, #0f172a)); }
+.project-form-block :deep(.pnw-information-block-footer) { padding: 14px; }
+.directory-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 7px; }
 .divider { display: flex; align-items: center; gap: 10px; color: var(--pnw-workbench-muted, var(--pnw-workbench-default-muted, #64748b)); font-size: 10px; }
 .divider::before, .divider::after { content: ""; height: 1px; flex: 1; background: var(--pnw-workbench-border, var(--pnw-workbench-default-border, #dbe3ed)); }
 .project-summary, .import-summary { display: grid; gap: 5px; padding: 11px; border-radius: 8px; background: var(--pnw-workbench-bg, var(--pnw-workbench-default-bg, rgba(148, 163, 184, .1))); font-size: 11px; }

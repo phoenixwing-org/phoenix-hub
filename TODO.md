@@ -2,18 +2,18 @@
 
 状态：当前开发清单
 
-## Wing 0.7.2 基线
+## Wing 0.7.5 基线
 
-- [x] Hub Web 工作台的目标依赖固定为 `phoenix-wing@0.7.2`，不跟随 Wing 的 `develop` 分支。
+- [x] Hub Web 工作台的目标依赖固定为 `phoenix-wing@0.7.5`，不跟随 Wing 的 `develop` 分支。
 - [x] 默认开发、类型检查、测试与构建使用 Registry 依赖；Hub 不自动跟随 Wing 升级，开发者必须主动更新精确版本。
-- [x] Hub 不提供 Wing 本地源码模式，开发服务器、测试和生产构建只从 Registry 包解析。
+- [x] Hub 不提供 Wing 本地源码模式，`pnpm dev`、测试和生产构建只从 Registry 包解析。
 - [x] 未使用 `pnpm link`、`file:`、`workspace:` 或 override，也没有相邻源码静默回退。
-- [x] 使用 Registry `phoenix-wing@0.7.2` 生成干净锁文件，并完成正式依赖门禁、测试、类型检查与生产构建。
+- [x] 使用 Registry `phoenix-wing@0.7.5` 生成干净锁文件，并完成正式依赖门禁、测试、类型检查与生产构建。
 
 ## Hub 本机控制层
 
 - [x] Hub 自身只运行一个本机进程、一个端口：同一 Node 服务同时提供控制 API 与 Web 界面；开发期使用 Vite middleware，发布期提供构建后的静态资源。
-- [x] 控制 API 与 Web UI 同源，不单独启动前端 dev server、后端 API server 或代理服务；固定为 `127.0.0.1:42100`。
+- [x] 控制 API 与 Web UI 同源，不单独启动前端 dev server、后端 API server 或代理服务；默认使用 `127.0.0.1:42100`，Windows 排除端口时回退 `42160`。
 - [x] 建立受控服务清单：名称、工作目录、允许的启动命令、端口、健康检查 URL 与打开地址。
 - [x] 只允许执行清单中的启动命令；不提供任意 shell 命令执行入口，并拒绝清单直接使用 shell executable。
 - [x] 显示已启动服务、端口、PID、健康状态与最近日志；区分“Hub 启动”和“外部已启动”。

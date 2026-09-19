@@ -6,6 +6,7 @@ import type { AdminPluginWorkspaceSettings, HubRuntimeInfo } from "@shared/contr
 import { hubApi } from "../api";
 
 defineOptions({ name: "PnhHubSettingsView" });
+const currentHubOrigin = window.location.origin;
 const emit = defineEmits<{
   error: [error: unknown];
   adminPluginSettingsChanged: [];
@@ -111,7 +112,7 @@ onMounted(() => void refresh());
         <h2>运行信息</h2>
         <dl>
           <div><dt>版本</dt><dd>{{ info?.version ?? '读取中…' }}</dd></div>
-          <div><dt>地址</dt><dd>{{ info?.address ?? 'http://127.0.0.1:42100' }}</dd></div>
+          <div><dt>地址</dt><dd>{{ info?.address ?? currentHubOrigin }}</dd></div>
           <div class="wide"><dt>项目目录</dt><dd>{{ info?.projectRoot ?? '读取中…' }}</dd></div>
         </dl>
       </article>
@@ -187,7 +188,7 @@ onMounted(() => void refresh());
     <div v-if="confirmingShutdown" class="dialog-backdrop" role="presentation" @mousedown.self="confirmingShutdown = false">
       <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="hub-shutdown-title">
         <h2 id="hub-shutdown-title">确认关闭 Phoenix Hub？</h2>
-        <p>Hub 将先停止自己拥有的服务进程组，然后关闭 42100 端口。页面随后断开；外部进程不受影响。</p>
+        <p>Hub 将先停止自己拥有的服务进程组，然后关闭当前监听端口。页面随后断开；外部进程不受影响。</p>
         <p>建议先点击“打开 Hub 终端”，以便随后运行 <code>pnpm dev</code>。</p>
         <footer>
           <button type="button" :disabled="shuttingDown" @click="confirmingShutdown = false">取消</button>

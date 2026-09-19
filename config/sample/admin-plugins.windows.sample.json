@@ -1,5 +1,5 @@
 {
-  "sampleNotice": "Windows Admin 稳定测试示例。以 E:\\phoenix 为讲解工作区，复制为 .runtime/admin-plugins.json 后使用；进行中工作树的 Junction 不由此文件管理。请按当前 Manifest 复核版本并显式执行开发挂载；不要写入 commit SHA、凭据、token 或本机操作历史。",
+  "sampleNotice": "Windows Admin 主库测试示例。以 E:\\phoenix 为讲解工作区，复制为 .runtime/admin-plugins.json 后使用。请按当前 Manifest 复核版本并显式执行开发挂载；不要写入 commit SHA、凭据、token 或本机操作历史。",
   "version": 1,
   "settings": {
     "adminWebRoot": "E:\\phoenix\\phoenix-admin-vue",

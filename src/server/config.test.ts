@@ -156,7 +156,7 @@ describe("services.json", () => {
       serviceRole: "web",
       runtimeSlot: "phoenix-admin-development",
       startOrder: 20,
-      command: { executable: "pnpm", args: ["dev:local"] },
+      command: { executable: "pnpm", args: ["dev"] },
       profilePolicy: undefined,
     });
     expect(services.find((service) => service.id === "admin-release-web")).toMatchObject({
