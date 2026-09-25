@@ -15,8 +15,8 @@ importers:
         specifier: 8.22.0
         version: 8.22.0
       phoenix-wing:
-        specifier: 0.7.2
-        version: 0.7.2(element-plus@2.14.2(vue@3.5.39(typescript@5.9.3)))(pinia@3.0.4(typescript@5.9.3)(vue@3.5.39(typescript@5.9.3)))(vue@3.5.39(typescript@5.9.3))
+        specifier: 0.7.5
+        version: 0.7.5(element-plus@2.14.2(vue@3.5.39(typescript@5.9.3)))(pinia@3.0.4(typescript@5.9.3)(vue@3.5.39(typescript@5.9.3)))(vue@3.5.39(typescript@5.9.3))
       pinia:
         specifier: 3.0.4
         version: 3.0.4(typescript@5.9.3)(vue@3.5.39(typescript@5.9.3))
@@ -401,8 +401,8 @@ packages:
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
 
-  '@phoenix-wing/code-core@0.6.4':
-    resolution: {integrity: sha512-JwR5rB9pfY0CdSsDkT1fskiYj6H7WhrIgx3fWDYtv5+1z4VPgfQlpdIPvBL/SDfQMJxuAspnuCVQB6I2Q/pMPA==}
+  '@phoenix-wing/code-core@0.6.6':
+    resolution: {integrity: sha512-gW4m9nbD67j+mK+e6LYpf/GmCWLsJ812a6MmFtwS+M0Yg8rIdd2hFyWDhGdlNvAobT/prXoLy+7w+sm9uLVauA==}
 
   '@phoenix-wing/db-node@0.6.3':
     resolution: {integrity: sha512-wX3IxX1iB4ulVZO1cmh5KZOl64lULTKhWmDieWc3RKGxVbXJPbAn0Yydq/9ZQdDpKuE6UaBrb4d/iTRvxONyYw==}
@@ -888,8 +888,8 @@ packages:
   pgpass@1.0.5:
     resolution: {integrity: sha512-FdW9r/jQZhSeohs1Z3sI1yxFQNFvMcnmfuj4WBMUTxOrAyLMaTcE1aAMBiTlbMNaXvBCQuVi0R7hd8udDSP7ug==}
 
-  phoenix-wing@0.7.2:
-    resolution: {integrity: sha512-/o89wI0Rj6xUXh6JQBnJDOvRnf/SlA1+Uwv/BnhNVUuRWB5SZhXVp/JhcIYNeNluMLA/ozTDA2pIBnwBiS7rSA==}
+  phoenix-wing@0.7.5:
+    resolution: {integrity: sha512-UILnKZl6luelwwkdQcmgSIBUgIqCd6+VlbK14K5IiKOCKUQoBVDCguoS1jwiY87SZSZMp4/Jw/zbitD5e3tuFA==}
     peerDependencies:
       element-plus: ^2.0.0
       pinia: ^2.0.0 || ^3.0.0
@@ -1301,7 +1301,7 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
-  '@phoenix-wing/code-core@0.6.4': {}
+  '@phoenix-wing/code-core@0.6.6': {}
 
   '@phoenix-wing/db-node@0.6.3':
     dependencies:
@@ -1815,9 +1815,9 @@ snapshots:
     dependencies:
       split2: 4.2.0
 
-  phoenix-wing@0.7.2(element-plus@2.14.2(vue@3.5.39(typescript@5.9.3)))(pinia@3.0.4(typescript@5.9.3)(vue@3.5.39(typescript@5.9.3)))(vue@3.5.39(typescript@5.9.3)):
+  phoenix-wing@0.7.5(element-plus@2.14.2(vue@3.5.39(typescript@5.9.3)))(pinia@3.0.4(typescript@5.9.3)(vue@3.5.39(typescript@5.9.3)))(vue@3.5.39(typescript@5.9.3)):
     dependencies:
-      '@phoenix-wing/code-core': 0.6.4
+      '@phoenix-wing/code-core': 0.6.6
       '@phoenix-wing/db-node': 0.6.3
     optionalDependencies:
       element-plus: 2.14.2(vue@3.5.39(typescript@5.9.3))

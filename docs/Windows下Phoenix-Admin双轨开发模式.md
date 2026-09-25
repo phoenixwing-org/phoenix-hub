@@ -18,14 +18,14 @@
 
 `Admin 进行中` 在界面显示为“进行中”。它用于正在修改的 Admin Host 与消费者：
 
-- Vue：`E:\phoenix\worktrees\inprocess\vue`，本地分支 `inprocess`；
-- Node：`E:\phoenix\worktrees\inprocess\node`，本地分支 `inprocess`；
-- Issue：`E:\phoenix\worktrees\inprocess\issue`，本地分支 `inprocess`；
-- 品牌插件：`E:\phoenix\worktrees\inprocess\branding`，本地分支 `inprocess`；
-- 插件消费者通过 Windows `Junction` 链接到对应的 inprocess 插件工作树；
+- Vue：`E:\phoenix\worktrees\phoenix-admin-vue-working`，本地分支 `codex/admin-in-progress`；
+- Node：`E:\phoenix\worktrees\phoenix-admin-node-working`，本地分支 `codex/admin-in-progress`；
+- Issue：`E:\phoenix\worktrees\phoenix-open-issue-working`，本地分支 `codex/admin-in-progress`；
+- 品牌插件：`E:\phoenix\worktrees\phoenix-branding-working`，本地分支 `codex/admin-in-progress`；
+- 插件消费者通过 Windows `Junction` 链接到对应的 `-working` 插件工作树；
 - 端口为 Web `9000`、API `8101`。
 
-这一组的链接是开发者工作树装配，不由 Hub 的 Admin 插件登记文件表达为“已挂载”。AI 不得因为 `.runtime/admin-plugins.json` 没有指向 inprocess 就删除这些 Junction。
+这一组的链接是开发者工作树装配，不由 Hub 的 Admin 插件登记文件表达为“已挂载”。AI 不得因为 `.runtime/admin-plugins.json` 没有指向对应的 `-working` 目录就删除这些 Junction。
 
 ### 2.2 测试
 
@@ -73,23 +73,23 @@ Copy-Item config\sample\admin-plugins.windows.sample.json .runtime\admin-plugins
 先确认目标目录和本地分支都不存在，并将下例末尾的 `develop` 替换为本轮明确选择的开发起点，再执行；它不是默认合入目标：
 
 ```powershell
-New-Item -ItemType Directory -Force E:\phoenix\worktrees\inprocess | Out-Null
+New-Item -ItemType Directory -Force E:\phoenix\worktrees | Out-Null
 
-git -C E:\phoenix\phoenix-admin-vue worktree add -b inprocess E:\phoenix\worktrees\inprocess\vue develop
-git -C E:\phoenix\phoenix-admin-node worktree add -b inprocess E:\phoenix\worktrees\inprocess\node develop
-git -C E:\phoenix\phoenix-open-issue worktree add -b inprocess E:\phoenix\worktrees\inprocess\issue develop
-git -C E:\phoenix\phoenix-branding worktree add -b inprocess E:\phoenix\worktrees\inprocess\branding develop
+git -C E:\phoenix\phoenix-admin-vue worktree add -b codex/admin-in-progress E:\phoenix\worktrees\phoenix-admin-vue-working develop
+git -C E:\phoenix\phoenix-admin-node worktree add -b codex/admin-in-progress E:\phoenix\worktrees\phoenix-admin-node-working develop
+git -C E:\phoenix\phoenix-open-issue worktree add -b codex/admin-in-progress E:\phoenix\worktrees\phoenix-open-issue-working develop
+git -C E:\phoenix\phoenix-branding worktree add -b codex/admin-in-progress E:\phoenix\worktrees\phoenix-branding-working develop
 ```
 
-以上命令只用于空白机器。不得覆盖已经存在的分支或目录，也不得对 dirty 主仓执行强制切换。创建后应逐项确认四个 `inprocess` 工作树的分支和路径。
+以上命令只用于空白机器。不得覆盖已经存在的分支或目录，也不得对 dirty 主仓执行强制切换。创建后应逐项确认四个 `-working` 工作树的分支和路径。同一项目通常只保留一个活动开发 worktree；确需并行时使用 `<项目>-working-<用途>`，结束后及时清理。
 
 随后按每个仓库声明的 package manager 安装：
 
 ```powershell
-pnpm --dir E:\phoenix\worktrees\inprocess\vue install --frozen-lockfile
-pnpm --dir E:\phoenix\worktrees\inprocess\node install --frozen-lockfile
-pnpm --dir E:\phoenix\worktrees\inprocess\issue install --frozen-lockfile
-pnpm --dir E:\phoenix\worktrees\inprocess\branding install --frozen-lockfile
+pnpm --dir E:\phoenix\worktrees\phoenix-admin-vue-working install --frozen-lockfile
+pnpm --dir E:\phoenix\worktrees\phoenix-admin-node-working install --frozen-lockfile
+pnpm --dir E:\phoenix\worktrees\phoenix-open-issue-working install --frozen-lockfile
+pnpm --dir E:\phoenix\worktrees\phoenix-branding-working install --frozen-lockfile
 ```
 
 ## 5. 进行中消费者 Junction
@@ -100,24 +100,24 @@ Open Issue 示例：
 
 ```powershell
 New-Item -ItemType Junction `
-  -Path E:\phoenix\worktrees\inprocess\vue\src\modules\phoenix-open-issue `
-  -Target E:\phoenix\worktrees\inprocess\issue\packages\admin-plugin\vue\phoenix-open-issue
+  -Path E:\phoenix\worktrees\phoenix-admin-vue-working\src\modules\phoenix-open-issue `
+  -Target E:\phoenix\worktrees\phoenix-open-issue-working\packages\admin-plugin\vue\phoenix-open-issue
 
 New-Item -ItemType Junction `
-  -Path E:\phoenix\worktrees\inprocess\node\src\modules\phoenix-open-issue `
-  -Target E:\phoenix\worktrees\inprocess\issue\packages\admin-plugin\midway\phoenix-open-issue
+  -Path E:\phoenix\worktrees\phoenix-admin-node-working\src\modules\phoenix-open-issue `
+  -Target E:\phoenix\worktrees\phoenix-open-issue-working\packages\admin-plugin\midway\phoenix-open-issue
 ```
 
 Acme 品牌插件的真实 `moduleId` 是 `phoenix-branding`：
 
 ```powershell
 New-Item -ItemType Junction `
-  -Path E:\phoenix\worktrees\inprocess\vue\src\modules\phoenix-branding `
-  -Target E:\phoenix\worktrees\inprocess\branding\packages\admin-plugin\vue\phoenix-branding
+  -Path E:\phoenix\worktrees\phoenix-admin-vue-working\src\modules\phoenix-branding `
+  -Target E:\phoenix\worktrees\phoenix-branding-working\packages\admin-plugin\vue\phoenix-branding
 
 New-Item -ItemType Junction `
-  -Path E:\phoenix\worktrees\inprocess\node\src\modules\phoenix-branding `
-  -Target E:\phoenix\worktrees\inprocess\branding\packages\admin-plugin\midway\phoenix-branding
+  -Path E:\phoenix\worktrees\phoenix-admin-node-working\src\modules\phoenix-branding `
+  -Target E:\phoenix\worktrees\phoenix-branding-working\packages\admin-plugin\midway\phoenix-branding
 ```
 
 其他品牌插件仍必须先读取真实 Manifest 再链接，不得从插件名称猜测目录。

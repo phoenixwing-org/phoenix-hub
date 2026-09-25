@@ -55,8 +55,8 @@
           "runtimeSlot": "phoenix-admin-development",
           "metadata": {
             "description": "稳定主工作区；只使用 Registry 精确依赖",
-            "wingVersion": "Registry 0.7.2=7563cba",
-            "sourceBaseline": "phoenix-wing develop@7563cbacee1562ae4861e218daf3ea7517844210"
+            "wingVersion": "Registry 0.7.5=27e92a3",
+            "sourceBaseline": "phoenix-wing develop@27e92a31d2df826bb6c78d8fe96f124cef445821"
           },
           "services": {
             "web": {
@@ -75,8 +75,8 @@
           "runtimeSlot": "phoenix-admin-release-validation",
           "metadata": {
             "description": "独立 Git worktree Host / package-assembled / registry-only",
-            "wingVersion": "Registry 0.7.2=7563cba",
-            "sourceBaseline": "phoenix-wing develop@7563cbacee1562ae4861e218daf3ea7517844210"
+            "wingVersion": "Registry 0.7.5=27e92a3",
+            "sourceBaseline": "phoenix-wing develop@27e92a31d2df826bb6c78d8fe96f124cef445821"
           },
           "policy": {
             "environmentKind": "release-validation",

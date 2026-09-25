@@ -37,7 +37,7 @@
           "runtimeSlot": "phoenix-admin-inprocess",
           "metadata": {
             "description": "独立 inprocess 工作树；通过本机链接消费进行中的插件工作树",
-            "wingVersion": "LOCAL 0.7.2 · in-progress（不得作为 Registry 证据）"
+            "wingVersion": "LOCAL 0.7.5 · in-progress（不得作为 Registry 证据）"
           },
           "services": {
             "web": { "id": "admin-inprocess-web", "cwd": "E:\\phoenix\\worktrees\\inprocess\\vue" },
@@ -50,8 +50,8 @@
           "runtimeSlot": "phoenix-admin-stable-test",
           "metadata": {
             "description": "主工作目录；通过 Hub 受控挂载主库插件",
-            "wingVersion": "Registry 0.7.2=7563cba",
-            "sourceBaseline": "phoenix-wing develop@7563cbacee1562ae4861e218daf3ea7517844210"
+            "wingVersion": "Registry 0.7.5=27e92a3",
+            "sourceBaseline": "phoenix-wing develop@27e92a31d2df826bb6c78d8fe96f124cef445821"
           },
           "services": {
             "web": {

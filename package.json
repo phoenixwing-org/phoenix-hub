@@ -11,7 +11,8 @@
   "packageManager": "pnpm@10.15.1",
   "license": "Apache-2.0",
   "scripts": {
-    "dev": "pnpm verify:wing && tsx watch src/server/main.ts",
+    "dev": "node scripts/run-with-wing.mjs registry -- pnpm exec tsx watch src/server/main.ts",
+    "wing": "node scripts/run-with-wing.mjs local -- pnpm exec tsx watch src/server/main.ts",
     "build": "pnpm verify:wing && vite build && pnpm clean:server && tsc -p tsconfig.server.json",
     "clean:server": "node -e \"require('node:fs').rmSync('dist-server', { recursive: true, force: true })\"",
     "start": "node dist-server/server/main.js",
@@ -25,7 +26,7 @@
   "dependencies": {
     "element-plus": "2.14.2",
     "pg": "8.22.0",
-    "phoenix-wing": "0.7.2",
+    "phoenix-wing": "0.7.5",
     "pinia": "3.0.4",
     "vue": "3.5.39"
   },
