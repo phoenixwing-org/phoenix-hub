@@ -13,7 +13,7 @@
             "description": "Cool Admin Vue 前端",
             "command": {
               "executable": "pnpm",
-              "args": ["dev:local"]
+              "args": ["dev"]
             },
             "endpoints": [
               {
@@ -136,8 +136,8 @@
                 {
                   "serviceRole": "web",
                   "name": "phoenix-wing",
-                  "version": "0.7.2",
-                  "integrity": "sha512-/o89wI0Rj6xUXh6JQBnJDOvRnf/SlA1+Uwv/BnhNVUuRWB5SZhXVp/JhcIYNeNluMLA/ozTDA2pIBnwBiS7rSA=="
+                  "version": "0.7.5",
+                  "integrity": "sha512-UILnKZl6luelwwkdQcmgSIBUgIqCd6+VlbK14K5IiKOCKUQoBVDCguoS1jwiY87SZSZMp4/Jw/zbitD5e3tuFA=="
                 }
               ],
               "installDependencies": true

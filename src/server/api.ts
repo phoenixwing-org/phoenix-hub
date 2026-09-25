@@ -21,6 +21,7 @@ import type { PnhBuiltinServiceConfigStore } from "./PnhBuiltinServiceConfig.js"
 import type { PnhAdminPluginWorkspace } from "./PnhAdminPluginWorkspace.js";
 import type { PnhProjectConfigStore } from "./PnhProjectConfig.js";
 import type { PnhServiceManager } from "./PnhServiceManager.js";
+import { pnhSelectLocalDirectory } from "./PnhLocalDirectoryPicker.js";
 
 const LOOPBACK_HOST_PATTERN = /^(127\.0\.0\.1|localhost)(:\d+)?$/i;
 const ADMIN_PLUGIN_MIGRATION_SKILL_COMMIT = "46e25e3041dc9a57dbbb629feedc9e4694dfcd82";
@@ -616,6 +617,11 @@ export function createApiHandler(
         json(response, 200, projectConfig.inspect(String(body.directory ?? "")));
         return true;
       }
+      if (request.method === "POST" && url.pathname === "/api/projects/select-directory") {
+        const directory = await pnhSelectLocalDirectory();
+        json(response, 200, directory ? { directory, cancelled: false } : { cancelled: true });
+        return true;
+      }
       if (request.method === "POST" && url.pathname === "/api/projects") {
         const body = await readJson(request) as unknown as AddLocalProjectRequest;
         const added = projectConfig.add(
@@ -623,6 +629,7 @@ export function createApiHandler(
           String(body.script ?? ""),
           manager.serviceIds(),
           typeof body.name === "string" ? body.name : undefined,
+          body.port,
         );
         manager.register(added.definition);
         json(response, 201, {
@@ -665,6 +672,7 @@ export function createApiHandler(
             String(body.directory ?? ""),
             String(body.script ?? ""),
             typeof body.name === "string" ? body.name : undefined,
+            body.port,
           );
           manager.replaceDefinition(updated.definition);
           json(response, 200, {

@@ -13,7 +13,7 @@
             "description": "Cool Admin Vue 前端",
             "command": {
               "executable": "pnpm",
-              "args": ["dev:local"]
+              "args": ["dev"]
             },
             "endpoints": [
               {

@@ -41,8 +41,11 @@ const packageManifest = JSON.parse(readFileSync(path.join(projectRoot, "package.
   version?: string;
 };
 const host = "127.0.0.1";
-const port = Number(process.env.PHOENIX_HUB_PORT ?? 42_100);
+const configuredPort = Number(process.env.PHOENIX_HUB_PORT ?? 42_100);
+let port = configuredPort;
 if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error("PHOENIX_HUB_PORT 不合法");
+const windowsFallbackPort = 42_160;
+const allowWindowsPortFallback = process.platform === "win32" && process.env.PHOENIX_HUB_PORT === undefined;
 
 const projectConfig = new PnhProjectConfigStore(projectRoot);
 const loadedServiceConfiguration = loadServiceConfiguration(projectRoot);
@@ -80,7 +83,7 @@ const handleApi = createApiHandler(
   {
     projectRoot,
     version: packageManifest.version ?? "unknown",
-    address: `http://${host}:${port}`,
+    get address() { return `http://${host}:${port}`; },
     requestShutdown: () => void shutdown("网页请求"),
   },
 );
@@ -107,7 +110,22 @@ const server = createServer(async (request, response) => {
   serveStatic(path.join(projectRoot, "dist"), request, response);
 });
 
-server.once("error", (error: NodeJS.ErrnoException) => {
+let retriedWindowsExcludedPort = false;
+server.on("error", (error: NodeJS.ErrnoException) => {
+  if (
+    error.code === "EACCES"
+    && allowWindowsPortFallback
+    && !retriedWindowsExcludedPort
+    && port !== windowsFallbackPort
+  ) {
+    retriedWindowsExcludedPort = true;
+    process.stderr.write(
+      `Windows 拒绝绑定 ${host}:${port}（可能属于排除端口范围），自动改用 ${host}:${windowsFallbackPort}。\n`,
+    );
+    port = windowsFallbackPort;
+    setImmediate(() => server.listen(port, host, onListening));
+    return;
+  }
   const message = error.code === "EADDRINUSE"
     ? `Phoenix Hub 已在 http://${host}:${port} 运行；拒绝启动第二个实例。`
     : `Phoenix Hub 监听失败：${error.message}`;
@@ -115,16 +133,18 @@ server.once("error", (error: NodeJS.ErrnoException) => {
   void vite?.close().finally(() => process.exit(1));
 });
 
-server.listen(port, host, () => {
+function onListening(): void {
   process.stdout.write(`Phoenix Hub: http://${host}:${port}\n`);
-});
+}
+
+server.listen(port, host, onListening);
 
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
   process.stdout.write(`收到 ${signal}，停止 Hub 管理的服务进程…\n`);
-  // 先释放 42100，避免 tsx watch 在旧进程清理服务期间启动新实例并触发 EADDRINUSE。
+  // 先释放当前监听端口，避免 tsx watch 在旧进程清理服务期间启动新实例并触发 EADDRINUSE。
   const serverClosed = new Promise<void>((resolve) => server.close(() => resolve()));
   await vite?.close();
   await manager.stopAllManaged();

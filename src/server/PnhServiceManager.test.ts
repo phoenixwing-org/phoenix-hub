@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -19,6 +19,7 @@ import {
 import {
   PNH_SERVICE_SPAWN_SHELL,
   PnhServiceManager,
+  pnhResolveServiceSpawnCommand,
   pnhServiceSpawnEnvironment,
 } from "./PnhServiceManager.js";
 import {
@@ -379,6 +380,28 @@ describe("PnhServiceManager", () => {
       [PNH_CONTROLLED_TOOL_PROFILE_ENV]: "trusted-profile",
     });
     expect(PNH_SERVICE_SPAWN_SHELL).toBe(false);
+  });
+
+  it("pnpm 服务复用启动 Hub 的 pnpm CLI，不依赖 PATH 或 Windows shell", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "pnh-pnpm-command-"));
+    temporaryRoots.push(root);
+    const pnpmEntrypoint = path.join(root, "pnpm.mjs");
+    writeFileSync(pnpmEntrypoint, "// controlled pnpm fixture\n", "utf8");
+
+    expect(pnhResolveServiceSpawnCommand(
+      { executable: "pnpm", args: ["dev"] },
+      { npm_execpath: pnpmEntrypoint, PATH: "" },
+      process.execPath,
+    )).toEqual({
+      executable: process.execPath,
+      args: [realpathSync(pnpmEntrypoint), "dev"],
+      inheritedPnpmCli: true,
+    });
+    expect(pnhResolveServiceSpawnCommand(
+      { executable: "pnpm", args: ["dev"] },
+      { npm_execpath: path.join(root, "npm.mjs"), PATH: "" },
+      process.execPath,
+    )).toEqual({ executable: "pnpm", args: ["dev"], inheritedPnpmCli: false });
   });
 
   it("start 最后注入保留 Profile；unavailable 不阻止目标服务，其他服务不继承 Profile", async () => {
