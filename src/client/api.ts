@@ -27,6 +27,7 @@ import type {
   ServiceRuntimeStatus,
   ServiceDefinition,
   ServiceSeriesSource,
+  SelectLocalDirectoryResponse,
   ShutdownHubResponse,
   StopServiceRequest,
   UpdateLocalProjectRequest,
@@ -123,6 +124,10 @@ export const hubApi = {
   inspectProject: (directory: string) => request<LocalNodeProjectCandidate>(
     "/api/projects/inspect",
     { method: "POST", body: JSON.stringify({ directory }) },
+  ),
+  selectProjectDirectory: () => request<SelectLocalDirectoryResponse>(
+    "/api/projects/select-directory",
+    { method: "POST", body: "{}" },
   ),
   addProject: (input: AddLocalProjectRequest) => request<AddLocalProjectResponse>(
     "/api/projects",

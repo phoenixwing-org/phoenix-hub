@@ -1,0 +1,14 @@
+{
+  "package": "phoenix-wing",
+  "version": "0.7.5",
+  "registryTag": "latest",
+  "label": "Registry 0.7.5=27e92a3",
+  "source": {
+    "branch": "develop",
+    "commit": "27e92a31d2df826bb6c78d8fe96f124cef445821"
+  },
+  "dist": {
+    "shasum": "bbf0c702cfd201f56d104147e80b61825bd3da80",
+    "integrity": "sha512-UILnKZl6luelwwkdQcmgSIBUgIqCd6+VlbK14K5IiKOCKUQoBVDCguoS1jwiY87SZSZMp4/Jw/zbitD5e3tuFA=="
+  }
+}

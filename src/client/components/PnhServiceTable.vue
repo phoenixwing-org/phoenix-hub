@@ -538,7 +538,7 @@ function chooseServiceConfigAction(event: Event, serviceId: string): void {
               </div>
             </td>
             <template v-else>
-            <td>
+            <td class="service-cell">
               <div class="service-title">
                 <strong>{{ pnhServiceDisplayName(row.service.definition) }}</strong>
                 <em
@@ -561,7 +561,7 @@ function chooseServiceConfigAction(event: Event, serviceId: string): void {
               </div>
               <span>{{ row.service.definition.description }}</span>
             </td>
-            <td>
+            <td class="status-cell">
               <span class="status" :data-state="row.service.lifecycle">
                 <i />{{ lifecycleLabels[row.service.lifecycle] }}
               </span>
@@ -571,7 +571,7 @@ function chooseServiceConfigAction(event: Event, serviceId: string): void {
               <span class="health" :data-health="pnhPresentedHealth(row.service).state">{{ pnhPresentedHealth(row.service).label }}</span>
               <small v-if="row.service.message">{{ row.service.message }}</small>
             </td>
-            <td>
+            <td class="endpoint-cell">
               <div class="endpoints">
                 <div
                   v-for="position in endpointPositions"
@@ -601,7 +601,7 @@ function chooseServiceConfigAction(event: Event, serviceId: string): void {
             <td class="pid-cell">
               {{ row.service.pid ?? (row.service.externalProcesses.map((item) => item.pid).join(", ") || "—") }}
             </td>
-            <td>
+            <td class="actions-cell">
               <div class="row-actions" @click.stop>
                 <button
                   v-if="row.service.lifecycle === 'stopped'"
@@ -733,12 +733,9 @@ function chooseServiceConfigAction(event: Event, serviceId: string): void {
 .tree-actions button:hover { background: var(--pnw-control-hover-bg, var(--pnw-workbench-default-hover-bg, rgba(59, 130, 246, .08))); color: var(--pnw-workbench-text, var(--pnw-workbench-default-text, #0f172a)); }
 .service-count { padding: 6px 10px; border-radius: 999px; background: var(--pnw-control-active-bg, var(--pnw-workbench-default-active-bg, rgba(37, 99, 235, .1))); color: var(--pnw-control-active-text, var(--pnw-workbench-default-active-text, #2563eb)); font-size: 12px; font-weight: 700; }
 .service-table-wrap { width: 100%; min-width: 0; min-height: 100%; overflow-x: auto; border: 1px solid var(--pnw-workbench-border, var(--pnw-workbench-default-border, #dbe3ed)); border-radius: 10px; background: var(--pnw-workbench-surface, var(--pnw-workbench-default-surface, #fff)); box-shadow: 0 12px 34px rgba(15, 23, 42, .055); }
-.service-table { width: 100%; min-width: 960px; table-layout: fixed; border-collapse: collapse; color: var(--pnw-workbench-text, var(--pnw-workbench-default-text, #0f172a)); }
-.service-column { width: 36%; }
-.status-column { width: 15%; }
-.endpoint-column { width: 28%; }
-.pid-column { width: 8%; }
-.actions-column { width: 13%; }
+.service-table { width: 100%; min-width: 860px; table-layout: auto; border-collapse: collapse; color: var(--pnw-workbench-text, var(--pnw-workbench-default-text, #0f172a)); }
+.service-column { width: 100%; }
+.status-column, .endpoint-column, .pid-column, .actions-column { width: 1%; }
 .configuration-alert { display: grid; gap: 3px; padding: 9px 14px; border-bottom: 1px solid rgba(220, 38, 38, .34); background: rgba(220, 38, 38, .1); color: var(--pnw-workbench-text, var(--pnw-workbench-default-text, #0f172a)); font-size: 11px; }
 .configuration-alert strong { color: #ef4444; font-size: 12px; }
 .configuration-alert small { color: var(--pnw-workbench-muted, var(--pnw-workbench-default-muted, #64748b)); }
@@ -800,18 +797,19 @@ td > span { color: var(--pnw-workbench-muted, var(--pnw-workbench-default-muted,
 .health[data-health="partial"] { background: rgba(245, 158, 11, .12); color: #b45309; }
 .health[data-health="unhealthy"] { background: rgba(239, 68, 68, .1); color: #dc2626; }
 td small { display: block; max-width: 220px; margin-top: 5px; color: var(--pnw-workbench-muted, var(--pnw-workbench-default-muted, #64748b)); }
-.endpoints { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 5px; min-width: 260px; }
-.endpoint-position { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
-.endpoint-position[data-position="api"] { grid-column: 1; justify-self: start; justify-content: flex-start; }
-.endpoint-position[data-position="other"] { grid-column: 2; justify-self: center; justify-content: center; }
-.endpoint-position[data-position="web"] { grid-column: 3; justify-self: end; justify-content: flex-end; }
+.service-cell { min-width: 260px; }
+.status-cell { min-width: 190px; max-width: 240px; }
+.endpoint-cell { min-width: 150px; max-width: 360px; }
+.endpoints { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; min-width: 140px; max-width: 360px; }
+.endpoint-position { display: contents; }
 .endpoints span { padding: 3px 6px; border: 1px solid var(--pnw-workbench-border, var(--pnw-workbench-default-border, transparent)); border-radius: 5px; background: var(--pnw-workbench-bg, var(--pnw-workbench-default-bg, rgba(148, 163, 184, .12))); color: var(--pnw-workbench-muted, var(--pnw-workbench-default-muted, #64748b)); white-space: nowrap; }
 .endpoints span.healthy { background: rgba(22, 163, 74, .1); color: #15803d; }
 .endpoints span.unverified { background: rgba(37, 99, 235, .1); color: #2563eb; }
 .endpoints span.checking { background: rgba(37, 99, 235, .1); color: #2563eb; }
 .endpoints span.unhealthy { background: rgba(245, 158, 11, .12); color: #b45309; }
-.pid-cell { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--pnw-workbench-muted, var(--pnw-workbench-default-muted, #64748b)); }
+.pid-cell { min-width: 68px; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--pnw-workbench-muted, var(--pnw-workbench-default-muted, #64748b)); }
 .actions-heading { text-align: right; }
+.actions-cell { min-width: 102px; }
 .row-actions { min-width: 92px; display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
 button { appearance: none; border: 1px solid var(--pnw-workbench-border, var(--pnw-workbench-default-border, #cbd5e1)); border-radius: 6px; background: var(--pnw-workbench-surface, var(--pnw-workbench-default-surface, #fff)); color: inherit; padding: 6px 8px; font: inherit; cursor: pointer; }
 .row-actions > button { width: 30px; height: 28px; display: inline-flex; align-items: center; justify-content: center; padding: 0; white-space: nowrap; }

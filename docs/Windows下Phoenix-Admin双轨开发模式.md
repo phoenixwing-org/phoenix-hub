@@ -1,13 +1,13 @@
 # Windows 下 Phoenix Admin 双轨开发模式
 
-本文是给开发者和 AI 的 Windows 可复现归档，以 `E:\phoenix` 为工作区示例。它只覆盖日常的“进行中 / 测试”双轨环境，不恢复发布验证，也不启用 Cool Admin Midway 4。
+本文是给开发者和 AI 的 Windows 可复现归档，以 `E:\phoenix` 为工作区示例。进行中 worktree 使用平铺目录，测试使用主库；不恢复发布验证，也不启用 Cool Admin Midway 4。
 
 ## 1. 动态兼容基线
 
-- Phoenix Hub 的版本和 package manager 以 `E:\phoenix\phoenix-hub\package.json` 为准。
-- Admin Vue、Admin Node、Open Issue、Phoenix Wing 与 Branding 使用任务指定的 Git 分支；日常双轨示例通常从 `develop` 创建 `inprocess`，但归档不固定 commit SHA。
+- Phoenix Hub 的版本和 package manager 以 `E:\phoenix\phoenix-dev-hub\package.json` 为准。
+- Admin Vue、Admin Node、Open Issue、Phoenix Wing 与 Branding 先读取各仓主目录当前检出的版本号分支，并将它视为该轮目标发布线；`develop` 只作开发/测试基线提示，不能默认作为合入目标。每次提交、合并、变基或发布前都要重新核对实际分支与发布意图。
 - Open Issue 与 Branding 的插件版本、Host/Wing 兼容范围、入口和校验值以各自 `packages/admin-plugin/manifest.json` 为准。
-- Hub Registry 版本以 Hub 自身依赖和锁文件为准；Hub 不消费相邻 `phoenix-wing` 源码目录。
+- Hub 的 `pnpm dev` 使用自身依赖和锁文件中的 Registry Wing；Hub 不消费相邻 `phoenix-wing` 源码目录。
 - 每次复现都必须先核对分支、工作树状态、Manifest 和 package manager，不能把文档中的示例版本当成远端最新状态。
 
 归档不记录具体 Git commit。需要冻结发布验收时，应在独立的、访问受控的验收记录中保存 Git ref 与制品完整性证据，不回写本开发模式文档。
@@ -18,14 +18,14 @@
 
 `Admin 进行中` 在界面显示为“进行中”。它用于正在修改的 Admin Host 与消费者：
 
-- Vue：`E:\phoenix\.worktrees\inprocess\vue`，本地分支 `inprocess`；
-- Node：`E:\phoenix\.worktrees\inprocess\node`，本地分支 `inprocess`；
-- Issue：`E:\phoenix\.worktrees\inprocess\issue`，本地分支 `inprocess`；
-- 品牌插件：`E:\phoenix\.worktrees\inprocess\branding`，本地分支 `inprocess`；
-- 插件消费者通过 Windows `Junction` 链接到对应的 inprocess 插件工作树；
+- Vue：`E:\phoenix\worktrees\phoenix-admin-vue-working`，本地分支 `codex/admin-in-progress`；
+- Node：`E:\phoenix\worktrees\phoenix-admin-node-working`，本地分支 `codex/admin-in-progress`；
+- Issue：`E:\phoenix\worktrees\phoenix-open-issue-working`，本地分支 `codex/admin-in-progress`；
+- 品牌插件：`E:\phoenix\worktrees\phoenix-branding-working`，本地分支 `codex/admin-in-progress`；
+- 插件消费者通过 Windows `Junction` 链接到对应的 `-working` 插件工作树；
 - 端口为 Web `9000`、API `8101`。
 
-这一组的链接是开发者工作树装配，不由 Hub 的 Admin 插件登记文件表达为“已挂载”。AI 不得因为 `.runtime/admin-plugins.json` 没有指向 inprocess 就删除这些 Junction。
+这一组的链接是开发者工作树装配，不由 Hub 的 Admin 插件登记文件表达为“已挂载”。AI 不得因为 `.runtime/admin-plugins.json` 没有指向对应的 `-working` 目录就删除这些 Junction。
 
 ### 2.2 测试
 
@@ -34,7 +34,7 @@
 - Vue：`E:\phoenix\phoenix-admin-vue`；
 - Node：`E:\phoenix\phoenix-admin-node`；
 - Open Issue：`E:\phoenix\phoenix-open-issue`；
-- 品牌插件：`E:\phoenix\phoenix-branding`，Manifest `phoenix-branding@0.1.0`；
+- 品牌插件：`E:\phoenix\phoenix-branding`，当前版本以 Manifest 为准；
 - 插件必须通过 Hub 的“系统 → Admin 工具 → Admin 插件”执行检查和受控挂载；
 - 端口为 Web `9100`、API `8201`；
 - API 固定 `PAH_DB_SYNCHRONIZE=false` 与 `PAH_DB_INITIALIZE=false`，避免测试启动隐式改库。
@@ -70,26 +70,26 @@ Copy-Item config\sample\admin-plugins.windows.sample.json .runtime\admin-plugins
 
 ## 4. 创建进行中工作树
 
-先确认目标目录和本地分支都不存在，再执行：
+先确认目标目录和本地分支都不存在，并将下例末尾的 `develop` 替换为本轮明确选择的开发起点，再执行；它不是默认合入目标：
 
 ```powershell
-New-Item -ItemType Directory -Force E:\phoenix\.worktrees\inprocess | Out-Null
+New-Item -ItemType Directory -Force E:\phoenix\worktrees | Out-Null
 
-git -C E:\phoenix\phoenix-admin-vue worktree add -b inprocess E:\phoenix\.worktrees\inprocess\vue develop
-git -C E:\phoenix\phoenix-admin-node worktree add -b inprocess E:\phoenix\.worktrees\inprocess\node develop
-git -C E:\phoenix\phoenix-open-issue worktree add -b inprocess E:\phoenix\.worktrees\inprocess\issue develop
-git -C E:\phoenix\phoenix-branding worktree add -b inprocess E:\phoenix\.worktrees\inprocess\branding develop
+git -C E:\phoenix\phoenix-admin-vue worktree add -b codex/admin-in-progress E:\phoenix\worktrees\phoenix-admin-vue-working develop
+git -C E:\phoenix\phoenix-admin-node worktree add -b codex/admin-in-progress E:\phoenix\worktrees\phoenix-admin-node-working develop
+git -C E:\phoenix\phoenix-open-issue worktree add -b codex/admin-in-progress E:\phoenix\worktrees\phoenix-open-issue-working develop
+git -C E:\phoenix\phoenix-branding worktree add -b codex/admin-in-progress E:\phoenix\worktrees\phoenix-branding-working develop
 ```
 
-以上命令只用于空白机器。不得覆盖已经存在的分支或目录，也不得对 dirty 主仓执行强制切换。创建后应逐项确认四个 `inprocess` 工作树的分支和路径。
+以上命令只用于空白机器。不得覆盖已经存在的分支或目录，也不得对 dirty 主仓执行强制切换。创建后应逐项确认四个 `-working` 工作树的分支和路径。同一项目通常只保留一个活动开发 worktree；确需并行时使用 `<项目>-working-<用途>`，结束后及时清理。
 
 随后按每个仓库声明的 package manager 安装：
 
 ```powershell
-pnpm --dir E:\phoenix\.worktrees\inprocess\vue install --frozen-lockfile
-pnpm --dir E:\phoenix\.worktrees\inprocess\node install --frozen-lockfile
-pnpm --dir E:\phoenix\.worktrees\inprocess\issue install --frozen-lockfile
-pnpm --dir E:\phoenix\.worktrees\inprocess\branding install --frozen-lockfile
+pnpm --dir E:\phoenix\worktrees\phoenix-admin-vue-working install --frozen-lockfile
+pnpm --dir E:\phoenix\worktrees\phoenix-admin-node-working install --frozen-lockfile
+pnpm --dir E:\phoenix\worktrees\phoenix-open-issue-working install --frozen-lockfile
+pnpm --dir E:\phoenix\worktrees\phoenix-branding-working install --frozen-lockfile
 ```
 
 ## 5. 进行中消费者 Junction
@@ -100,24 +100,24 @@ Open Issue 示例：
 
 ```powershell
 New-Item -ItemType Junction `
-  -Path E:\phoenix\.worktrees\inprocess\vue\src\modules\phoenix-open-issue `
-  -Target E:\phoenix\.worktrees\inprocess\issue\packages\admin-plugin\vue\phoenix-open-issue
+  -Path E:\phoenix\worktrees\phoenix-admin-vue-working\src\modules\phoenix-open-issue `
+  -Target E:\phoenix\worktrees\phoenix-open-issue-working\packages\admin-plugin\vue\phoenix-open-issue
 
 New-Item -ItemType Junction `
-  -Path E:\phoenix\.worktrees\inprocess\node\src\modules\phoenix-open-issue `
-  -Target E:\phoenix\.worktrees\inprocess\issue\packages\admin-plugin\midway\phoenix-open-issue
+  -Path E:\phoenix\worktrees\phoenix-admin-node-working\src\modules\phoenix-open-issue `
+  -Target E:\phoenix\worktrees\phoenix-open-issue-working\packages\admin-plugin\midway\phoenix-open-issue
 ```
 
 Acme 品牌插件的真实 `moduleId` 是 `phoenix-branding`：
 
 ```powershell
 New-Item -ItemType Junction `
-  -Path E:\phoenix\.worktrees\inprocess\vue\src\modules\phoenix-branding `
-  -Target E:\phoenix\.worktrees\inprocess\branding\packages\admin-plugin\vue\phoenix-branding
+  -Path E:\phoenix\worktrees\phoenix-admin-vue-working\src\modules\phoenix-branding `
+  -Target E:\phoenix\worktrees\phoenix-branding-working\packages\admin-plugin\vue\phoenix-branding
 
 New-Item -ItemType Junction `
-  -Path E:\phoenix\.worktrees\inprocess\node\src\modules\phoenix-branding `
-  -Target E:\phoenix\.worktrees\inprocess\branding\packages\admin-plugin\midway\phoenix-branding
+  -Path E:\phoenix\worktrees\phoenix-admin-node-working\src\modules\phoenix-branding `
+  -Target E:\phoenix\worktrees\phoenix-branding-working\packages\admin-plugin\midway\phoenix-branding
 ```
 
 其他品牌插件仍必须先读取真实 Manifest 再链接，不得从插件名称猜测目录。
@@ -154,7 +154,7 @@ packages/admin-plugin/midway/phoenix-open-issue/migrations/*.sql text eol=lf
 * text=auto eol=lf
 ```
 
-Windows 上若旧工作树已经是 CRLF，应先确认资源无本地改动，再按该属性从 Git 原始 blob 恢复；不得把 Manifest 改成 CRLF 哈希。品牌打包工具使用锁文件声明的纯 Node ZIP 依赖，不依赖 Mac/Linux 的系统 `zip`、`unzip` 命令。主库和 inprocess 副本均必须通过两个 Host ESLint、Manifest 校验与全部契约测试。
+Windows 上若旧工作树已经是 CRLF，应先确认资源无本地改动，再按该属性从 Git 原始 blob 恢复；不得把 Manifest 改成 CRLF 哈希。品牌打包工具使用锁文件声明的纯 Node ZIP 依赖，不依赖 Mac/Linux 的系统 `zip`、`unzip` 命令。主库和 working worktree 均必须通过两个 Host ESLint、Manifest 校验与全部契约测试。
 
 ## 8. 启动顺序与安全边界
 
@@ -162,11 +162,11 @@ Windows 上若旧工作树已经是 CRLF，应先确认资源无本地改动，�
 2. 检查目标分组、插件链接、端口与数据库配置。
 3. API 先于 Web 启动。
 4. 测试 API 未确认数据库凭据时不得启动；禁止自动创建数据库、执行 seed 或打开 synchronize。
-5. “进行中”和“测试”共享一个 `runtimeSlot` 家族，按 Hub 的冲突规则切换，不应同时占用同一端口。
+5. “进行中”和“测试”按 Hub 的冲突规则切换，不应同时占用同一端口。
 6. `phoenix-wing` 根目录的 `pnpm dev` 是测试 watch，不是 Admin 运行服务。
 7. Open Issue 是 Admin 插件，不再作为 `3400/5183 + pnpm dev` 的独立服务启动。
 
-Windows 实现必须满足两个要求：Hub 能从目标进程 PEB 读取真实 cwd，不能把缺失 cwd 当成可靠 ownership；Admin Vue 的 Wing 本地脚本复用当前 pnpm 的 `node + npm_execpath`，并以 workspace 拓扑顺序构建 Wing 子包。多层 pnpm/Vite 子进程在优雅停止超时时，必须保留 Hub 的二次确认，不能按进程名强杀。
+Windows 实现必须满足两个要求：Hub 能从目标进程 PEB 读取真实 cwd，不能把缺失 cwd 当成可靠 ownership；Hub 启动服务时复用当前 pnpm 的 `node + npm_execpath`。多层 pnpm/Vite 子进程在优雅停止超时时，必须保留 Hub 的二次确认，不能按进程名强杀。
 
 发布验证、干净安装验证与 Cool Admin Midway 4 不属于本开发模式。没有可信包、独立数据库、明确 Host Git ref 和授权时，AI 必须保持它们未配置、未启动。
 
@@ -177,12 +177,12 @@ Windows 实现必须满足两个要求：Hub 能从目标进程 PEB 读取真实
 - Hub 版本、Wing Registry 门禁和 package manager 版本匹配；
 - 服务页只有“进行中 / 测试”两个 Admin Profile；
 - `configurationErrors` 为空；
-- 进行中 Vue、Node、Issue、Branding 四仓都在各自 `inprocess` 分支，工作树路径正确；
+- 进行中 Vue、Node、Issue、Branding 四仓均位于平铺的 `<项目名>-working` 目录并使用 `working` 分支；
 - 测试组使用主 Admin 仓，Hub 设置指向测试服务 ID；
 - Open Issue 主仓在测试组显示 `mounted`；
-- Open Issue inprocess 工作树被进行中 Vue/Node 的 Junction 消费；
-- Acme 品牌主仓在测试组显示 `mounted`，inprocess 工作树被进行中 Vue/Node 的 Junction 消费；
-- 主仓与工作树没有被链接或安装过程意外写入业务源码；
+- Open Issue working worktree 被进行中 Vue/Node 的 Junction 消费；
+- Acme 品牌主仓在测试组显示 `mounted`，working worktree 被进行中 Vue/Node 的 Junction 消费；
+- 主仓与 working worktree 没有被链接或安装过程意外写入业务源码；
 - API 数据库策略经人工确认后才启动；
 - Web/API 的端口、PID、cwd 和 ownership 均由 Hub 实际探测，不以“进程已创建”代替健康验证。
 

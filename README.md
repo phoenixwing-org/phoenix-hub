@@ -1,6 +1,6 @@
 # Phoenix Hub
 
-当前版本：**0.5.0**
+当前版本：**0.5.1**
 
 Phoenix Hub 是 Phoenix 工作区内开发服务的本机控制台。它用一个 Node 进程、一个端口同时提供 Web 工作台和控制 API，不再要求记住每个仓库的启动命令与端口。
 
@@ -11,9 +11,11 @@ Phoenix Hub 是 Phoenix 工作区内开发服务的本机控制台。它用一�
 
 提交前可用 `git remote -v` 核对两个正式远端；默认远端仍是 Gitee 的 `origin`，不会自动向 GitHub 推送。
 
+跨仓任务试行以各仓主目录当前检出的版本号分支作为本轮目标发布线。`develop` 只提供开发/测试基线提示，不能据此默认决定合入目标；每次提交、合并、变基或发布前都必须重新核对主目录实际分支与发布意图。进行中开发 worktree 统一平铺在 Phoenix 工作区的非隐藏 `worktrees/` 下，目录名使用 `<项目>-working`；同一项目通常只保留一个，确需并行时才使用 `<项目>-working-<用途>`。不新建 `.worktree`、`.worktrees` 或嵌套的“进行中”目录，也不清理用途不明的旧工作区。
+
 ```text
 http://127.0.0.1:42100
-├─ Wing 0.7.1 Web 工作台
+├─ Wing Registry 0.7.5 Web 工作台
 ├─ /api/services：探测、启动、停止、重启
 ├─ /api/services/:id/logs：按 generation/cursor 增量读取最近日志
 ├─ /api/services/:id/terminal：打开本机系统终端
@@ -43,7 +45,7 @@ http://127.0.0.1:42100
 - Series 可以包含多个隔离 Profile。示例中的 Phoenix Admin 提供“开发联调”（source-mounted / DEV ONLY，9000/8101）和“发布验收环境（非正式）”（package-assembled / Registry Wing，9100/8201）两套实例，可并行独立启停、重启、打开和查看日志。
 - 示例另提供独立“Cool Admin Midway 4”组：纯 Cool Vue 8.x 使用 9200，纯 Cool Node 8.x / Midway 4 使用 8001 和精确命名的本机 PostgreSQL 联调库。它不装载 Phoenix、Wing、Pah 或业务插件；右侧 Properties 显示源码基线与人工联调帮助。
 - Profile 的 `environmentKind` 支持 `development/release-validation/preproduction/production`。非开发环境必须从不可变 Pah 业务包装配；production 默认只读，Hub 不提供会假装成功的启动、停止、重启、迁移或导入入口。
-- 发布包装配只写 `.runtime/assemblies`，启动前复核包 SHA/integrity、clean Host commit、隔离数据库、离线 frozen lock、Registry 精确依赖与 realpath；拒绝 `file:/link:/workspace:`、override、源码 symlink 和相邻仓回退。Hub 不执行 Pah 安装、DDL、建库、seed 或权限变更。
+- 发布包装配只写 `.runtime/assemblies`，启动前复核包 SHA/integrity、clean Host commit、隔离数据库、离线 frozen lock、Registry 精确依赖与 realpath；拒绝 `file:/link:/workspace:`、插件或嵌套 override、源码 symlink 和相邻仓回退。clean Host 根目录已归档的 override/patch 只在精确提交内接受，并继续拒绝本地协议、绝对路径或缺失 patch。Hub 不执行 Pah 安装、DDL、建库、seed 或权限变更。
 - 默认项目使用 Hub 同级目录的相对路径；“系统 → Hub”下的“服务设置”与“服务总览”并列，集中管理配置，不占用总览的运行操作空间。
 - 服务列表与设置 View 明确标记“默认 / 默认·已覆盖 / 已隐藏 / User”。默认服务支持本机编辑、隐藏/显示与一键重置用户配置基线；User 项目支持添加、编辑与只移出 Hub 的删除。
 - 默认服务、User 项目可单项或整套导出；整套格式为 version 2，单服务兼容导出和旧配置导入仍支持 version 1，所有导入都会重新经过后端安全校验。
@@ -66,27 +68,35 @@ http://127.0.0.1:42100
 - [Admin 系列多环境 Profile 点检](docs/Admin系列多环境配置档点检.md)
 - [后续任务清单](TODO.md)
 
-## Wing 0.7.1 依赖策略
+## Wing 0.7.5 依赖策略
 
 Hub 正式依赖只声明并锁定 npm Registry 的精确版本
-`phoenix-wing@0.7.1`。默认开发、类型检查、测试与构建均从安装后的 Registry 包
+`phoenix-wing@0.7.5`，对应发布源码 `develop@27e92a31d2df826bb6c78d8fe96f124cef445821`。
+默认开发、类型检查、测试与构建均从安装后的 Registry 包
 解析，不自动跟随相邻 Wing 仓库，开发者需要升级时必须主动修改精确版本并重新验证。
-Hub 不提供 Wing 本地源码模式；开发服务器、测试与生产构建均只从 Registry 包
-解析。不得使用 `link:`、`file:`、`workspace:`、override 或相邻源码回退。
+`pnpm dev` 从 Registry 包解析；`pnpm wing` 只在当前进程中使用同级 `../phoenix-wing` 的构建制品。
+不得使用 `link:`、`file:`、`workspace:`、插件或嵌套 override，或静默相邻源码回退；冻结
+Host 自身已归档的 override/patch 由 package assembly 按精确提交和安全路径单独校验。
+
+`pnpm dev` 只开发 Hub 自身并清除本地 Wing 模式；`pnpm wing` 会先校验并构建同级 Wing。本机用户配置可以为
+“Admin 进行中”服务显式注入 `PHOENIX_WING_ROOT`，但该服务只能标记为
+`LOCAL 0.7.5 · in-progress`，不得作为 Hub、稳定服务或正式装配的 Registry 证据。稳定线统一标记为
+`Registry 0.7.5=27e92a3`。
 
 ## 开发与构建
 
-安装依赖后，所有命令始终使用锁文件中的 Registry Wing：
+安装依赖后，默认命令使用锁文件中的 Registry Wing；只有 `pnpm wing` 使用同级源码：
 
 ```bash
 pnpm dev
+pnpm wing
 pnpm typecheck
 pnpm test
 pnpm build
 NODE_ENV=production pnpm start
 ```
 
-开发与生产均只绑定 `127.0.0.1:42100`。关闭 Hub 时，它会停止本次由自己启动的服务进程组；不会主动停止外部服务。
+开发与生产默认绑定 `127.0.0.1:42100`。Windows 若将该端口划入 TCP 排除范围并返回 `EACCES`，Hub 会自动回退到 `127.0.0.1:42160`，并在控制台和界面显示实际地址。关闭 Hub 时，它会停止本次由自己启动的服务进程组；不会主动停止外部服务。
 
 ## `Pnh` 命名惯例
 
@@ -113,7 +123,7 @@ Wing、Vue 或通用基础设施：
 cp config/sample/services.sample.json config/services.user.json
 ```
 
-Hub 不会自动执行 sample；复制后必须复核 `.worktrees`、commit、SHA、integrity、数据库与端口。`services.user.json` 不进入 Git，由使用者与 `.runtime` 一起自行备份。为兼容早期安装，未迁移的 `config/services.json` 仍可读取，但也已受 Git 忽略。加载优先级为 `services.user.json`、旧 `services.json`；两者都不存在时启动会明确提示初始化。每个实际清单项必须包含：
+Hub 不会自动执行 sample；复制后必须复核 `worktrees/`、commit、SHA、integrity、数据库与端口。`services.user.json` 不进入 Git，由使用者与 `.runtime` 一起自行备份。为兼容早期安装，未迁移的 `config/services.json` 仍可读取，但也已受 Git 忽略。加载优先级为 `services.user.json`、旧 `services.json`；两者都不存在时启动会明确提示初始化。每个实际清单项必须包含：
 
 Windows 与 Linux 的完整目录示例、Admin Host worktree 创建、Open Issue / Acme 品牌插件开发挂载流程见
 [`docs/本地配置指南.md`](docs/本地配置指南.md)。对应文件为
@@ -192,9 +202,10 @@ Phoenix Admin Development 的 sample 命令保持为纯 `pnpm dev`，数据库�
 包 SHA、Registry integrity 与路径只允许进入 `services.user.json` 或 `.runtime` 本机配置，连接串、token、
 密码和备份路径不得进入 Git。
 
-Admin 开发联调中，Web 使用 `pnpm dev:local` 消费相邻本地 Wing；它是 Admin 提供的
-`dev:wing-local` 便捷别名。API 仍使用普通 `pnpm dev`。这不改变 Hub 自身对 Registry
-Wing 0.7.1 的锁定。
+仅“Admin 进行中”本机配置允许 Web 使用 `pnpm wing` 和显式 `PHOENIX_WING_ROOT`
+消费对应进行中 Wing worktree。稳定 Admin Web
+与 Hub 自身均使用普通 `pnpm dev` 和 Registry `phoenix-wing@0.7.5`。进行中本地源码证据与
+`Registry 0.7.5=27e92a3` 正式证据不得混用。
 
 发布验收管理员重置是独立、操作员显式执行的本机工具，不是普通 start 的副作用：
 

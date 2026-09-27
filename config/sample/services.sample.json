@@ -1,5 +1,5 @@
 {
-  "sampleNotice": "复制为 config/services.user.json 后使用；示例按 Phoenix 同级工作区与独立 .worktrees 编排，换机器前必须复核路径、commit、SHA、integrity、数据库与端口。",
+  "sampleNotice": "复制为 config/services.user.json 后使用；示例按 Phoenix 同级工作区与独立 worktrees/ 编排，换机器前必须复核路径、commit、SHA、integrity、数据库与端口。",
   "version": 2,
   "series": [
     {
@@ -13,7 +13,7 @@
             "description": "Cool Admin Vue 前端",
             "command": {
               "executable": "pnpm",
-              "args": ["dev:local"]
+              "args": ["dev"]
             },
             "endpoints": [
               {
@@ -54,7 +54,9 @@
           "name": "Admin 开发联调",
           "runtimeSlot": "phoenix-admin-development",
           "metadata": {
-            "description": "相邻源码工作区 / dev-only"
+            "description": "稳定主工作区；只使用 Registry 精确依赖",
+            "wingVersion": "Registry 0.7.5=27e92a3",
+            "sourceBaseline": "phoenix-wing develop@27e92a31d2df826bb6c78d8fe96f124cef445821"
           },
           "services": {
             "web": {
@@ -72,7 +74,9 @@
           "name": "Admin 发布验收环境（非正式）",
           "runtimeSlot": "phoenix-admin-release-validation",
           "metadata": {
-            "description": "独立 Git worktree Host / package-assembled / registry-only"
+            "description": "独立 Git worktree Host / package-assembled / registry-only",
+            "wingVersion": "Registry 0.7.5=27e92a3",
+            "sourceBaseline": "phoenix-wing develop@27e92a31d2df826bb6c78d8fe96f124cef445821"
           },
           "policy": {
             "environmentKind": "release-validation",
@@ -82,6 +86,10 @@
               "envName": "PAH_DB_DATABASE",
               "name": "phoenix_admin_release_validation",
               "forbiddenNames": [
+                "postgres",
+                "template0",
+                "template1",
+                "phoenix_admin",
                 "phoenix_admin_development",
                 "phoenix_admin_preproduction",
                 "phoenix_admin_production"
@@ -117,19 +125,19 @@
               "moduleId": "phoenix-open-issue",
               "version": "0.6.2-admin.0",
               "nodeHost": {
-                "root": "../.worktrees/phoenix-admin-clean-validation/node",
+                "root": "../worktrees/phoenix-admin-clean-validation/node",
                 "commit": "replace-with-node-host-commit"
               },
               "vueHost": {
-                "root": "../.worktrees/phoenix-admin-clean-validation/vue",
+                "root": "../worktrees/phoenix-admin-clean-validation/vue",
                 "commit": "replace-with-vue-host-commit"
               },
               "registryPackages": [
                 {
                   "serviceRole": "web",
                   "name": "phoenix-wing",
-                  "version": "0.6.2",
-                  "integrity": "sha512-sPNU/+erS5gaHTCOpSCRrwiG6b7blQ98XskzFTUfXLmFwxgciUiRfwyZxhsQOsjC/xBbjWgrAojpTX9tofl1mQ=="
+                  "version": "0.7.5",
+                  "integrity": "sha512-UILnKZl6luelwwkdQcmgSIBUgIqCd6+VlbK14K5IiKOCKUQoBVDCguoS1jwiY87SZSZMp4/Jw/zbitD5e3tuFA=="
                 }
               ],
               "installDependencies": true
@@ -162,11 +170,15 @@
               "name": "Phoenix Admin 发布验收 API",
               "description": "独立 worktree Host、数据库与 8201 端口",
               "command": {
+                "args": ["dev:plugin-installer"],
                 "env": {
                   "PAH_SERVER_PORT": "8201",
                   "PAH_DB_DATABASE": "phoenix_admin_release_validation",
                   "PAH_DB_SYNCHRONIZE": "false",
-                  "PAH_DB_INITIALIZE": "false"
+                  "PAH_DB_INITIALIZE": "false",
+                  "PAH_LOCAL_PACKAGE_MODE": "true",
+                  "PHOENIX_ADMIN_NODE_ROOT": ".",
+                  "PHOENIX_ADMIN_VUE_ROOT": "../vue"
                 }
               },
               "endpoints": [
@@ -302,11 +314,11 @@
           "services": {
             "web": {
               "id": "cool-admin-midway4-web",
-              "cwd": "../.worktrees/phoenix-admin-midway4/vue"
+              "cwd": "../worktrees/phoenix-admin-midway4/vue"
             },
             "api": {
               "id": "cool-admin-midway4-api",
-              "cwd": "../.worktrees/phoenix-admin-midway4/node",
+              "cwd": "../worktrees/phoenix-admin-midway4/node",
               "command": {
                 "env": {
                   "MIDWAY4_DB_HOST": "127.0.0.1",

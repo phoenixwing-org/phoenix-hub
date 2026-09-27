@@ -12,6 +12,7 @@ import path from "node:path";
 import type {
   LocalNodeProject,
   LocalNodeProjectCandidate,
+  LocalProjectEndpoint,
   LocalProjectCatalogResponse,
   LocalProjectTransferDocument,
   NodePackageManager,
@@ -27,6 +28,14 @@ interface LocalProjectFile {
 const ID_PATTERN = /^[a-z][a-z0-9-]{1,63}$/;
 const PACKAGE_MANAGERS = new Set<NodePackageManager>(["pnpm", "npm", "yarn", "bun"]);
 const MAX_IMPORTED_PROJECTS = 100;
+const VITE_CONFIG_NAMES = [
+  "vite.config.js",
+  "vite.config.mjs",
+  "vite.config.cjs",
+  "vite.config.ts",
+  "vite.config.mts",
+  "vite.config.cts",
+] as const;
 
 export interface PnhProjectImportChange {
   readonly project: LocalNodeProject;
@@ -61,6 +70,104 @@ function projectName(value: unknown, fallback: string): string {
   const name = value === undefined ? fallback : stringValue(value, "项目显示名称");
   if (name.length > 120) return configError("项目显示名称不能超过 120 个字符", 400);
   return name;
+}
+
+function projectPort(value: unknown, label = "访问端口"): number | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const port = typeof value === "number" ? value : Number(value);
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+    return configError(`${label} 必须是 1-65535 的整数`, 400);
+  }
+  return port;
+}
+
+function configuredEndpoints(
+  directory: string,
+  manifest: Readonly<Record<string, unknown>>,
+): readonly LocalProjectEndpoint[] {
+  const endpoints: LocalProjectEndpoint[] = [];
+  const addEndpoint = (id: string, label: string, value: unknown): void => {
+    const port = projectPort(value);
+    if (!port || endpoints.some((endpoint) => endpoint.port === port)) return;
+    const uniqueEndpointId = endpoints.some((endpoint) => endpoint.id === id)
+      ? `${id}-${endpoints.filter((endpoint) => endpoint.id.startsWith(id)).length + 1}`
+      : id;
+    endpoints.push({ id: uniqueEndpointId, label, port });
+  };
+
+  const scriptValues = manifest.scripts && typeof manifest.scripts === "object" && !Array.isArray(manifest.scripts)
+    ? Object.values(manifest.scripts).filter((value): value is string => typeof value === "string")
+    : [];
+  for (const scriptValue of scriptValues) {
+    const match = /(?:^|\s)(?:--port|-p)(?:=|\s+)(\d{1,5})(?:\s|$)/u.exec(scriptValue);
+    addEndpoint("web", "Web", match?.[1]);
+  }
+
+  const roots = [directory, ...readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith(".") && entry.name !== "node_modules")
+    .map((entry) => path.join(directory, entry.name))];
+  for (const root of roots) {
+    for (const configName of VITE_CONFIG_NAMES) {
+      const configPath = path.join(root, configName);
+      if (!existsSync(configPath)) continue;
+      const match = /\bport\s*:\s*(\d{1,5})\b/u.exec(readFileSync(configPath, "utf8"));
+      addEndpoint("web", "Web", match?.[1]);
+    }
+  }
+
+  const serverRoots = roots.filter((root) => {
+    const name = path.basename(root).toLowerCase();
+    return root === directory || ["api", "backend", "server"].includes(name);
+  });
+  const serverEntryNames = ["app.js", "app.mjs", "app.cjs", "app.ts", "server.js", "server.mjs", "server.cjs", "server.ts"];
+  for (const root of serverRoots) {
+    for (const entryName of serverEntryNames) {
+      const entryPath = path.join(root, entryName);
+      if (!existsSync(entryPath)) continue;
+      const source = readFileSync(entryPath, "utf8");
+      const directListen = /\.listen\(\s*(\d{1,5})\b/u.exec(source);
+      addEndpoint("api", "API", directListen?.[1]);
+      for (const declaration of source.matchAll(/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(\d{1,5})\s*;/gu)) {
+        const variable = declaration[1];
+        if (new RegExp(`\\.listen\\(\\s*${variable}\\b`, "u").test(source)) {
+          addEndpoint("api", "API", declaration[2]);
+        }
+      }
+    }
+  }
+  return endpoints;
+}
+
+function effectiveEndpoints(
+  detected: readonly LocalProjectEndpoint[],
+  webPortInput?: unknown,
+): readonly LocalProjectEndpoint[] {
+  const webPort = projectPort(webPortInput);
+  if (!webPort) return detected;
+  const next = detected.filter((endpoint) => endpoint.id !== "web" && endpoint.port !== webPort);
+  return [{ id: "web", label: "Web", port: webPort }, ...next];
+}
+
+function parseProjectEndpoints(value: unknown, label: string): readonly LocalProjectEndpoint[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) return configError(`${label} 必须是数组`, 400);
+  const endpoints = value.map((raw, index): LocalProjectEndpoint => {
+    const endpoint = objectValue(raw, `${label}[${index}]`);
+    const id = stringValue(endpoint.id, `${label}[${index}].id`);
+    if (!ID_PATTERN.test(id)) return configError(`${label}[${index}].id 不合法`, 400);
+    return {
+      id,
+      label: stringValue(endpoint.label, `${label}[${index}].label`),
+      port: projectPort(endpoint.port, `${label}[${index}].port`)!,
+    };
+  });
+  if (new Set(endpoints.map((endpoint) => endpoint.id)).size !== endpoints.length) {
+    return configError(`${label} 存在重复 id`, 400);
+  }
+  if (new Set(endpoints.map((endpoint) => endpoint.port)).size !== endpoints.length) {
+    return configError(`${label} 存在重复端口`, 400);
+  }
+  return endpoints;
 }
 
 function slug(value: string): string {
@@ -100,6 +207,9 @@ function packageManager(
 }
 
 function serviceDefinition(project: LocalNodeProject): ServiceDefinition {
+  const endpoints = project.endpoints ?? (project.port
+    ? [{ id: "web", label: "Web", port: project.port }]
+    : []);
   return {
     id: project.serviceId,
     name: project.name,
@@ -110,8 +220,13 @@ function serviceDefinition(project: LocalNodeProject): ServiceDefinition {
     command: project.packageManager === "npm"
       ? { executable: "npm", args: ["run", project.script] }
       : { executable: project.packageManager, args: [project.script] },
-    endpoints: [],
-    externalStop: "deny",
+    endpoints: endpoints.map((endpoint) => ({
+      ...endpoint,
+      openUrl: `http://127.0.0.1:${endpoint.port}/`,
+      ...(endpoint.id.startsWith("web") ? { healthUrl: `http://127.0.0.1:${endpoint.port}/` } : {}),
+    })),
+    // Hub 热重载后原受控进程会表现为 external；仅允许停止 cwd 仍位于项目目录内的进程组。
+    externalStop: "confirm-matching-cwd",
     localProjectId: project.id,
     configurationSource: "user",
   };
@@ -141,7 +256,13 @@ export class PnhProjectConfigStore {
       if (!candidate.scripts.includes(project.script)) {
         return configError(`本机项目 ${project.name} 已不存在 script：${project.script}`);
       }
-      return serviceDefinition({ ...project, packageManager: candidate.packageManager });
+      return serviceDefinition({
+        ...project,
+        packageManager: candidate.packageManager,
+        endpoints: project.endpoints?.length
+          ? project.endpoints
+          : effectiveEndpoints(candidate.endpoints, project.port),
+      });
     });
   }
 
@@ -197,11 +318,14 @@ export class PnhProjectConfigStore {
 
     const productName = typeof manifest.productName === "string" ? manifest.productName.trim() : "";
     const packageName = typeof manifest.name === "string" ? manifest.name.trim() : "";
+    const endpoints = configuredEndpoints(directory, manifest);
     return {
       name: productName || packageName || path.basename(directory),
       directory,
       scripts,
       packageManager: packageManager(directory, manifest),
+      endpoints,
+      port: endpoints.find((endpoint) => endpoint.id === "web")?.port,
       configured: this.#projects.some((project) => project.directory === directory),
     };
   }
@@ -211,6 +335,7 @@ export class PnhProjectConfigStore {
     scriptInput: string,
     reservedServiceIds: ReadonlySet<string>,
     nameInput?: string,
+    portInput?: unknown,
   ): { readonly project: LocalNodeProject; readonly definition: ServiceDefinition } {
     const candidate = this.inspect(directory);
     if (candidate.configured) {
@@ -230,6 +355,7 @@ export class PnhProjectConfigStore {
       new Set(this.#projects.map((project) => project.id)),
     );
     const serviceId = uniqueId(`${id}-${slug(script)}`, reservedServiceIds);
+    const endpoints = effectiveEndpoints(candidate.endpoints, portInput);
     const project: LocalNodeProject = {
       id,
       serviceId,
@@ -237,6 +363,8 @@ export class PnhProjectConfigStore {
       directory: candidate.directory,
       script,
       packageManager: candidate.packageManager,
+      endpoints,
+      port: endpoints.find((endpoint) => endpoint.id === "web")?.port,
       createdAt: new Date().toISOString(),
     };
     this.#projects = [...this.#projects, project];
@@ -249,6 +377,7 @@ export class PnhProjectConfigStore {
     directory: string,
     scriptInput: string,
     nameInput?: string,
+    portInput?: unknown,
   ): { readonly project: LocalNodeProject; readonly definition: ServiceDefinition } {
     const index = this.#projects.findIndex((project) => project.id === projectId);
     if (index < 0) throw new HubError("PROJECT_NOT_FOUND", `未知本机项目：${projectId}`, 404);
@@ -261,12 +390,15 @@ export class PnhProjectConfigStore {
     if (!candidate.scripts.includes(script)) {
       throw new HubError("SCRIPT_NOT_FOUND", `package.json 中不存在 script：${script}`, 400);
     }
+    const endpoints = effectiveEndpoints(candidate.endpoints, portInput);
     const project: LocalNodeProject = {
       ...previous,
       name: projectName(nameInput, candidate.name),
       directory: candidate.directory,
       script,
       packageManager: candidate.packageManager,
+      endpoints,
+      port: endpoints.find((endpoint) => endpoint.id === "web")?.port,
     };
     this.#projects = this.#projects.map((item, itemIndex) => itemIndex === index ? project : item);
     this.#save();
@@ -285,7 +417,13 @@ export class PnhProjectConfigStore {
     return {
       format: "phoenix-hub-projects",
       version: 1,
-      projects: this.#projects.map(({ name, directory, script }) => ({ name, directory, script })),
+      projects: this.#projects.map(({ name, directory, script, endpoints, port }) => ({
+        name,
+        directory,
+        script,
+        ...(endpoints?.length ? { endpoints } : {}),
+        ...(port ? { port } : {}),
+      })),
     };
   }
 
@@ -318,6 +456,11 @@ export class PnhProjectConfigStore {
         throw new HubError("SCRIPT_NOT_FOUND", `package.json 中不存在 script：${script}`, 400);
       }
       const name = projectName(item.name, candidate.name);
+      const importedEndpoints = parseProjectEndpoints(item.endpoints, "导入项目 endpoints");
+      const endpoints = importedEndpoints?.length
+        ? importedEndpoints
+        : effectiveEndpoints(candidate.endpoints, item.port);
+      const port = endpoints.find((endpoint) => endpoint.id === "web")?.port;
       const existing = existingByDirectory.get(candidate.directory);
       if (existing) {
         const project: LocalNodeProject = {
@@ -325,6 +468,8 @@ export class PnhProjectConfigStore {
           name,
           script,
           packageManager: candidate.packageManager,
+          endpoints,
+          port,
         };
         const index = projects.findIndex((entry) => entry.id === existing.id);
         projects[index] = project;
@@ -332,6 +477,8 @@ export class PnhProjectConfigStore {
           project.name !== existing.name
           || project.script !== existing.script
           || project.packageManager !== existing.packageManager
+          || JSON.stringify(project.endpoints) !== JSON.stringify(existing.endpoints)
+          || project.port !== existing.port
         ) updated.push({ project, definition: serviceDefinition(project) });
         continue;
       }
@@ -347,6 +494,8 @@ export class PnhProjectConfigStore {
         directory: candidate.directory,
         script,
         packageManager: candidate.packageManager,
+        endpoints,
+        port,
         createdAt: new Date().toISOString(),
       };
       projects.push(project);
@@ -407,6 +556,8 @@ export class PnhProjectConfigStore {
       if (!PACKAGE_MANAGERS.has(manager as NodePackageManager)) {
         return configError(`不支持的包管理器：${manager}`);
       }
+      const endpoints = parseProjectEndpoints(value.endpoints, "本机项目 endpoints");
+      const port = projectPort(value.port, "本机项目 port");
       return {
         id,
         serviceId,
@@ -414,6 +565,8 @@ export class PnhProjectConfigStore {
         directory: stringValue(value.directory, "本机项目 directory"),
         script: stringValue(value.script, "本机项目 script"),
         packageManager: manager as NodePackageManager,
+        endpoints,
+        port,
         createdAt: stringValue(value.createdAt, "本机项目 createdAt"),
       };
     });

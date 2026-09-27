@@ -64,7 +64,7 @@ describe("PnhProjectConfigStore", () => {
       cwd: realpathSync(workspace.project),
       command: { executable: "pnpm", args: ["dev"] },
       endpoints: [],
-      externalStop: "deny",
+      externalStop: "confirm-matching-cwd",
     });
     const configStat = statSync(configPath);
     expect(configStat.isFile()).toBe(true);
@@ -76,6 +76,47 @@ describe("PnhProjectConfigStore", () => {
       projects: [{ directory: realpathSync(workspace.project), script: "dev" }],
     });
     expect(new PnhProjectConfigStore(workspace.hub).serviceDefinitions()).toHaveLength(1);
+  });
+
+  it("从一级子目录识别 Web 与 API 端口并生成多个访问端点", () => {
+    const workspace = createWorkspace();
+    const client = path.join(workspace.project, "client");
+    const server = path.join(workspace.project, "server");
+    mkdirSync(client);
+    mkdirSync(server);
+    writeFileSync(path.join(client, "vite.config.ts"), [
+      "export default {",
+      "  server: { host: '127.0.0.1', port: 5180, strictPort: true },",
+      "};",
+    ].join("\n"));
+    writeFileSync(path.join(server, "app.js"), [
+      "const port = 8081;",
+      "app.listen(port, '127.0.0.1');",
+    ].join("\n"));
+
+    const store = new PnhProjectConfigStore(workspace.hub);
+    expect(store.inspect(workspace.project).port).toBe(5180);
+    expect(store.inspect(workspace.project).endpoints).toEqual([
+      { id: "web", label: "Web", port: 5180 },
+      { id: "api", label: "API", port: 8081 },
+    ]);
+    const added = store.add(workspace.project, "dev", new Set());
+    expect(added.project.port).toBe(5180);
+    expect(added.definition.endpoints).toEqual([
+      {
+        id: "web",
+        label: "Web",
+        port: 5180,
+        openUrl: "http://127.0.0.1:5180/",
+        healthUrl: "http://127.0.0.1:5180/",
+      },
+      {
+        id: "api",
+        label: "API",
+        port: 8081,
+        openUrl: "http://127.0.0.1:8081/",
+      },
+    ]);
   });
 
   it("拒绝不存在的 script 和重复项目", () => {

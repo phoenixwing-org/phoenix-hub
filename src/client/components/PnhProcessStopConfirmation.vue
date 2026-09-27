@@ -66,7 +66,7 @@ async function copyDetails(): Promise<void> {
           <p class="warning">
             {{ force
               ? '优雅停止已超时。强制终止可能丢失未保存数据。'
-              : '该服务并非由当前 Hub 会话启动。确认前请核对下面的精确目标。' }}
+              : '工作目录已核对一致。该服务并非由当前 Hub 会话启动，是否停止下面的精确进程？' }}
           </p>
 
           <dl class="summary-grid">

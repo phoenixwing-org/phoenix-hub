@@ -48,6 +48,6 @@ Web/API 服务 ID。此设置是**本机私有配置**，保存在 Git 忽略的
 
 ## 发布记录
 
-- 版本：`0.5.0`
-- 依赖基线：Registry `phoenix-wing@0.7.1`
+- 版本：`0.5.1`
+- 依赖基线：Registry `phoenix-wing@0.7.5`（以精确版本、tarball shasum 与 integrity 复核；发布源码 `27e92a31d2df826bb6c78d8fe96f124cef445821`）
 - 不包含：产品仓源码、当前服务生命周期、本机私有配置、数据库或凭据。

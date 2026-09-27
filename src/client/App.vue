@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from "vue";
 import { storeToRefs } from "pinia";
 import {
+  PNW_VERSION,
   PnwWorkbenchShell,
   type PnwNavigationNode,
 } from "phoenix-wing";
@@ -28,6 +29,7 @@ import { pnhServiceDisplayName } from "./PnhServiceDisplayName";
 import { pnhServiceRibbonIcon } from "./PnhServiceRoleIcons";
 import { usePnhWorkbenchPreferencesStore } from "./stores/PnhWorkbenchPreferencesStore";
 
+const hubAddressLabel = window.location.host;
 const preferences = usePnhWorkbenchPreferencesStore();
 const {
   presentation,
@@ -682,7 +684,7 @@ onBeforeUnmount(() => {
       :tabs="workbenchTabs"
       :active-tab-id="activeWorkbenchTabId"
       brand-title="Phoenix Hub"
-      brand-subtitle="127.0.0.1:42100"
+      :brand-subtitle="hubAddressLabel"
       tree-header-label="网站与系统"
       header-aria-label="Phoenix Hub 页眉"
       activity-aria-label="开发服务导航"
@@ -789,7 +791,7 @@ onBeforeUnmount(() => {
         />
       </template>
       <template #footer>
-        <span>Wing 0.7.1</span>
+        <span>Wing Registry {{ PNW_VERSION }}</span>
         <span v-if="lastRefreshAt">最近刷新 {{ lastRefreshAt.toLocaleTimeString('zh-CN', { hour12: false }) }}</span>
       </template>
     </PnwWorkbenchShell>
