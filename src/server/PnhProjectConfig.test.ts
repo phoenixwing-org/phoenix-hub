@@ -38,6 +38,45 @@ afterEach(() => {
 });
 
 describe("PnhProjectConfigStore", () => {
+  it("不将不同启动脚本的所有备用 Web 端口铺成端点", () => {
+    const { hub, project } = createWorkspace();
+    writeFileSync(path.join(project, "package.json"), JSON.stringify({ scripts: {
+      dev: "vite --port 5180", alternate: "vite --port 5173", preview: "vite --port 5174",
+    } }));
+    expect(new PnhProjectConfigStore(hub).inspect(project).endpoints).toEqual([{ id: "web", label: "Web", port: 5180 }]);
+  });
+  it("保留失效目录及错误供界面修正，不阻断其他项目加载，恢复目录后可重新加载", () => {
+    const { hub, project } = createWorkspace();
+    const store = new PnhProjectConfigStore(hub);
+    store.add(project, "dev", new Set());
+    const healthy = path.join(path.dirname(project), "healthy-app");
+    mkdirSync(healthy);
+    writeFileSync(path.join(healthy, "package.json"), JSON.stringify({ scripts: { dev: "vite" } }));
+    store.add(healthy, "dev", new Set());
+    const saved = readFileSync(path.join(hub, ".runtime/projects.json"), "utf8");
+    rmSync(project, { recursive: true });
+    const restored = new PnhProjectConfigStore(hub);
+    const definitions = restored.serviceDefinitions();
+    expect(definitions).toHaveLength(2);
+    expect(definitions[0].configurationErrors).toEqual([`本地目录不存在：${project}`]);
+    expect(definitions[1].configurationErrors).toBeUndefined();
+    expect(restored.listProjects()).toHaveLength(2);
+    expect(readFileSync(path.join(hub, ".runtime/projects.json"), "utf8")).toBe(saved);
+    expect(() => restored.inspect(project)).toThrow("本地目录不存在");
+    mkdirSync(project);
+    writeFileSync(path.join(project, "package.json"), JSON.stringify({ scripts: { dev: "vite" } }));
+    expect(restored.serviceDefinitions()[0].configurationErrors).toBeUndefined();
+  });
+
+  it("将失效脚本或损坏的 manifest 标记为配置错误", () => {
+    const { hub, project } = createWorkspace();
+    const store = new PnhProjectConfigStore(hub);
+    store.add(project, "dev", new Set());
+    writeFileSync(path.join(project, "package.json"), JSON.stringify({ scripts: { start: "node app.js" } }));
+    expect(store.serviceDefinitions()[0].configurationErrors?.[0]).toContain("已不存在 script：dev");
+    writeFileSync(path.join(project, "package.json"), "{");
+    expect(store.serviceDefinitions()[0].configurationErrors?.[0]).toContain("无法读取 package.json");
+  });
   it("发现 Hub 同级 Node.js 项目并优先提供 dev script", () => {
     const workspace = createWorkspace();
     const catalog = new PnhProjectConfigStore(workspace.hub).catalog();

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PnhMainBlock from "./PnhMainBlock.vue";
 import { computed } from "vue";
 import PnwPageHeader from "phoenix-wing/layout/PnwPageHeader.vue";
 import PnwPageLayout from "phoenix-wing/layout/PnwPageLayout.vue";
@@ -420,6 +421,7 @@ function chooseServiceConfigAction(event: Event, serviceId: string): void {
     </template>
 
     <p class="page-intro">启动动作来自受控清单，不接受浏览器传入命令。</p>
+    <PnhMainBlock title="服务列表">
     <div class="service-table-wrap">
       <div v-if="configurationErrors.length" class="configuration-alert" role="alert">
         <strong>服务配置错误</strong>
@@ -569,7 +571,7 @@ function chooseServiceConfigAction(event: Event, serviceId: string): void {
                 {{ ownershipLabels[row.service.ownership] }}
               </span>
               <span class="health" :data-health="pnhPresentedHealth(row.service).state">{{ pnhPresentedHealth(row.service).label }}</span>
-              <small v-if="row.service.message">{{ row.service.message }}</small>
+              <small v-if="row.service.message" :title="row.service.message">{{ row.service.health === 'reachable' && row.service.build.state !== 'failed' ? '端口已就绪' : row.service.message }}</small>
             </td>
             <td class="endpoint-cell">
               <div class="endpoints">
@@ -713,6 +715,7 @@ function chooseServiceConfigAction(event: Event, serviceId: string): void {
         <template v-else>当前筛选下没有服务。</template>
       </div>
     </div>
+    </PnhMainBlock>
   </PnwPageLayout>
 </template>
 
@@ -732,7 +735,7 @@ function chooseServiceConfigAction(event: Event, serviceId: string): void {
 .tree-actions button:last-child { border-right: 0; }
 .tree-actions button:hover { background: var(--pnw-control-hover-bg, var(--pnw-workbench-default-hover-bg, rgba(59, 130, 246, .08))); color: var(--pnw-workbench-text, var(--pnw-workbench-default-text, #0f172a)); }
 .service-count { padding: 6px 10px; border-radius: 999px; background: var(--pnw-control-active-bg, var(--pnw-workbench-default-active-bg, rgba(37, 99, 235, .1))); color: var(--pnw-control-active-text, var(--pnw-workbench-default-active-text, #2563eb)); font-size: 12px; font-weight: 700; }
-.service-table-wrap { width: 100%; min-width: 0; min-height: 100%; overflow-x: auto; border: 1px solid var(--pnw-workbench-border, var(--pnw-workbench-default-border, #dbe3ed)); border-radius: 10px; background: var(--pnw-workbench-surface, var(--pnw-workbench-default-surface, #fff)); box-shadow: 0 12px 34px rgba(15, 23, 42, .055); }
+.service-table-wrap { width: 100%; min-width: 0; overflow-x: auto; }
 .service-table { width: 100%; min-width: 860px; table-layout: auto; border-collapse: collapse; color: var(--pnw-workbench-text, var(--pnw-workbench-default-text, #0f172a)); }
 .service-column { width: 100%; }
 .status-column, .endpoint-column, .pid-column, .actions-column { width: 1%; }

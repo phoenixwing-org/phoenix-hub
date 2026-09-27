@@ -52,7 +52,7 @@ function websiteModules(services: readonly ServiceRuntimeStatus[]) {
       </div>
     </PnwPrimarySection>
 
-    <PnwPrimarySection title="Properties">
+    <PnwPrimarySection title="服务属性">
       <div class="section-body">
         <PnhPropertiesPanel :service="selectedService" :show-title="false" />
       </div>

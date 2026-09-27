@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import PnwPageHeader from "phoenix-wing/layout/PnwPageHeader.vue";
+import PnhMainBlock from "./PnhMainBlock.vue";
 import PnwInformationBlock from "phoenix-wing/components/PnwInformationBlock.vue";
 import type { PnwInformationBlockDefinition } from "phoenix-wing";
 import type {
@@ -745,11 +746,8 @@ watch(
         <p v-if="loading" class="empty-projects">正在读取本机服务配置…</p>
 
         <template v-if="!loading">
-          <section class="config-section">
-            <div class="section-heading">
-              <h3>产品系列</h3>
-              <span>{{ builtinSeries.length }} 组</span>
-            </div>
+          <PnhMainBlock title="产品系列">
+            <template #suffix>{{ builtinSeries.length }} 组</template>
             <ul class="configured-projects series-config-list">
               <li v-for="entry in builtinSeries" :key="entry.id">
                 <div class="project-copy">
@@ -774,13 +772,10 @@ watch(
                 </div>
               </li>
             </ul>
-          </section>
+          </PnhMainBlock>
 
-          <section class="config-section">
-            <div class="section-heading">
-              <h3>默认服务</h3>
-              <span>{{ builtinServices.length }} 项</span>
-            </div>
+          <PnhMainBlock title="默认服务">
+            <template #suffix>{{ builtinServices.length }} 项</template>
             <ul class="configured-projects">
               <li v-for="entry in builtinServices" :key="entry.id" :class="{ removed: entry.removed }">
                 <div class="project-copy">
@@ -833,13 +828,10 @@ watch(
                 </div>
               </li>
             </ul>
-          </section>
+          </PnhMainBlock>
 
-          <section class="config-section">
-            <div class="section-heading">
-              <h3>User 项目</h3>
-              <span>{{ projects.length }} 项</span>
-            </div>
+          <PnhMainBlock title="User 项目">
+            <template #suffix>{{ projects.length }} 项</template>
             <p v-if="projects.length === 0" class="empty-projects">
               还没有 User 项目，可从 Hub 同级目录或其他本地目录添加。
             </p>
@@ -876,7 +868,7 @@ watch(
                 </div>
               </li>
             </ul>
-          </section>
+          </PnhMainBlock>
         </template>
 
         <p class="privacy-note">

@@ -11,6 +11,7 @@ import path from "node:path";
 import type { ProcessSummary, ServiceDefinition } from "../shared/contracts.js";
 
 export interface PnhPersistedOwnership {
+  readonly logEndpoints?: readonly { readonly id: "web" | "api"; readonly port: number; readonly protocol: "http" | "https" }[];
   readonly serviceId: string;
   readonly ownershipId: string;
   readonly root: ProcessSummary;
@@ -69,6 +70,12 @@ function ownershipRecord(value: unknown): PnhPersistedOwnership | undefined {
     startedAt: item.startedAt,
     ports: [...new Set(item.ports as number[])].sort((left, right) => left - right),
     definitionIdentity: item.definitionIdentity,
+    ...(Array.isArray(item.logEndpoints) ? { logEndpoints: item.logEndpoints.filter((value): value is NonNullable<PnhPersistedOwnership["logEndpoints"]>[number] => {
+      if (!value || typeof value !== "object") return false;
+      const endpoint = value as Record<string, unknown>;
+      return (endpoint.id === "web" || endpoint.id === "api") && Number.isInteger(endpoint.port)
+        && Number(endpoint.port) > 0 && Number(endpoint.port) <= 65535 && (endpoint.protocol === "http" || endpoint.protocol === "https");
+    }).slice(0, 2).map(({ id, port, protocol }) => ({ id, port, protocol })) } : {}),
   };
 }
 

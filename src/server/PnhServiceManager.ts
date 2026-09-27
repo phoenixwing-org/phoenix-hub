@@ -20,6 +20,7 @@ import type {
 import { probeEndpoint, probeServiceIdentity } from "./endpointProbe.js";
 import { HubError } from "./errors.js";
 import { ServiceLogBuffer } from "./logBuffer.js";
+import { PnhLogEndpointTracker, pnhResolveLogEndpoints } from "./PnhLogEndpointTracker.js";
 import { PnhBuildOutputTracker } from "./PnhBuildOutputTracker.js";
 import { PnhProfileAssembly } from "./PnhProfileAssembly.js";
 import { assertPhoenixAdminReleaseValidationSpawnContract } from "./PnhReleaseValidationSpawnContract.js";
@@ -46,6 +47,7 @@ import {
 } from "./processDiscovery.js";
 
 interface ManagedProcess {
+  readonly logEndpoints?: PnhLogEndpointTracker;
   readonly child?: ChildProcess;
   readonly root: ProcessSummary;
   readonly ownershipId: string;
@@ -245,6 +247,7 @@ export class PnhServiceManager {
         continue;
       }
       this.#managed.set(record.serviceId, {
+        ...(definition.localProjectId ? { logEndpoints: this.#restoredLogEndpoints(record.logEndpoints) } : {}),
         root: record.root,
         ownershipId: record.ownershipId,
         startedAt: record.startedAt,
@@ -258,6 +261,12 @@ export class PnhServiceManager {
         `发现待复核 ownership=${record.ownershipId} rootPid=${record.root.pid} pgid=${record.root.processGroupId}`,
       );
     }
+  }
+
+  #restoredLogEndpoints(hints: readonly { id: "web" | "api"; port: number; protocol: "http" | "https" }[] = []): PnhLogEndpointTracker {
+    const tracker = new PnhLogEndpointTracker();
+    for (const hint of hints) tracker.appendChunk("stdout", Buffer.from(`[${hint.id}] Local: ${hint.protocol}://127.0.0.1:${hint.port}/\n`));
+    return tracker;
   }
 
   serviceIds(): ReadonlySet<string> {
@@ -399,11 +408,12 @@ export class PnhServiceManager {
       };
     }
     const assemblyEvidence = this.#profileAssembly.inspect(definition);
-    const [databaseEvidence, endpoints, identityProbe] = await Promise.all([
+    const [databaseEvidence, configuredEndpoints, identityProbe] = await Promise.all([
       this.#profileDatabasePreflight.inspect(definition, [...this.#definitions.values()]),
       Promise.all(definition.endpoints.map(probeEndpoint)),
       probeServiceIdentity(definition.identity),
     ]);
+    let endpoints = configuredEndpoints;
     const profileEvidence = assemblyEvidence && databaseEvidence
       ? { ...assemblyEvidence, database: databaseEvidence }
       : assemblyEvidence;
@@ -461,7 +471,21 @@ export class PnhServiceManager {
       const ownedMemberIds = new Set(
         (await processGroupMembers(managed.root.processGroupId)).map((item) => item.pid),
       );
-      const foreignListeners = listeners.filter((item) => !ownedMemberIds.has(item.pid));
+      if (definition.localProjectId && managed.logEndpoints) {
+        endpoints = await pnhResolveLogEndpoints(endpoints, managed.logEndpoints.candidates(), ownedMemberIds, listenerPids, probeEndpoint);
+        const record = this.#ownershipPersistence.entries().find(item => item.serviceId === serviceId && item.ownershipId === managed.ownershipId);
+        const logEndpoints = managed.logEndpoints.candidates()
+          .filter(hint => endpoints.some(endpoint => endpoint.id === hint.id && endpoint.port === hint.port && endpoint.reachable
+            && endpoint.pids.length > 0 && endpoint.pids.every(pid => ownedMemberIds.has(pid))))
+          .map(hint => ({ id: hint.id as "web" | "api", port: hint.port, protocol: hint.openUrl?.startsWith("https:") ? "https" as const : "http" as const }));
+        if (record && JSON.stringify(record.logEndpoints ?? []) !== JSON.stringify(logEndpoints)) {
+          try { this.#ownershipPersistence.put({ ...record, logEndpoints }); }
+          catch { this.#logs.get(serviceId)?.append("system", "动态端口记录保存失败；重启 Hub 后需要重新启动服务以识别端口"); }
+        }
+      }
+      const foreignListeners = (await Promise.all([...new Set(endpoints.flatMap((endpoint) => endpoint.pids))]
+        .filter((pid) => !ownedMemberIds.has(pid)).map(describeProcess)))
+        .filter((item): item is ProcessSummary => Boolean(item));
       const endpointHealth = healthState(endpoints, true);
       const build = managed.build.snapshot();
       const health = build.state === "failed"
@@ -750,6 +774,7 @@ export class PnhServiceManager {
     }
 
     const managed: ManagedProcess = {
+      ...(definition.localProjectId ? { logEndpoints: new PnhLogEndpointTracker() } : {}),
       child,
       root,
       ownershipId: randomUUID(),
@@ -785,10 +810,12 @@ export class PnhServiceManager {
       `ownership=${managed.ownershipId} rootPid=${root.pid} pgid=${root.processGroupId} cwd=${root.cwd} ports=${definition.endpoints.map((item) => item.port).join(",") || "none"}`,
     );
     child.stdout?.on("data", (chunk: Buffer) => {
+      managed.logEndpoints?.appendChunk("stdout", chunk);
       managed.build.appendChunk("stdout", chunk);
       logBuffer.appendChunk("stdout", chunk);
     });
     child.stderr?.on("data", (chunk: Buffer) => {
+      managed.logEndpoints?.appendChunk("stderr", chunk);
       managed.build.appendChunk("stderr", chunk);
       logBuffer.appendChunk("stderr", chunk);
     });

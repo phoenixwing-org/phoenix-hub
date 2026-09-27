@@ -40,6 +40,7 @@ describe("PnhServiceOwnershipStore", () => {
       startedAt: "2026-08-12T10:00:00.000Z",
       ports: [8101],
       definitionIdentity: "sha256:test",
+      logEndpoints: [{ id: "web", port: 5181, protocol: "http" }],
     });
 
     const file = path.join(projectRoot, ".runtime/ownership.json");
@@ -53,6 +54,7 @@ describe("PnhServiceOwnershipStore", () => {
       records: [{ serviceId: "admin-api", ports: [8101] }],
     });
     expect(new PnhServiceOwnershipStore(projectRoot).entries()).toHaveLength(1);
+    expect(new PnhServiceOwnershipStore(projectRoot).entries()[0].logEndpoints).toEqual([{ id: "web", port: 5181, protocol: "http" }]);
 
     store.delete("admin-api", "wrong-ownership");
     expect(store.entries()).toHaveLength(1);

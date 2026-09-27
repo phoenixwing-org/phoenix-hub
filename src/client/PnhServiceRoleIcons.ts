@@ -19,7 +19,7 @@ const svgAttributes = {
 };
 
 type PnhServiceRole = "web" | "api" | "app";
-type PnhServiceState = Pick<ServiceRuntimeStatus, "health" | "lifecycle">;
+type PnhServiceState = Pick<ServiceRuntimeStatus, "health" | "lifecycle"> & Partial<Pick<ServiceRuntimeStatus, "endpoints">>;
 
 function rolePaths(role: PnhServiceRole): ReturnType<typeof h>[] {
   if (role === "web") {
@@ -42,13 +42,10 @@ function rolePaths(role: PnhServiceRole): ReturnType<typeof h>[] {
 }
 
 function stateMarker(state: PnhServiceState): ReturnType<typeof h> {
-  if (state.health === "ready") {
-    return h("circle", { cx: "18", cy: "18", r: "3", fill: "currentColor", stroke: "none" });
-  }
-  if (state.lifecycle === "external") {
-    return h("path", { d: "m18 14.8 3.2 3.2-3.2 3.2-3.2-3.2Z", fill: "currentColor", stroke: "none" });
-  }
-  return h("circle", { cx: "18", cy: "18", r: "2.7", fill: "none" });
+  const web = state.endpoints?.filter(endpoint => endpoint.id === "web" || endpoint.id.startsWith("web-"));
+  const started = web?.length ? web.some(endpoint => endpoint.reachable)
+    : state.endpoints?.some(endpoint => endpoint.reachable) ?? state.health === "ready";
+  return h("circle", { cx: "18", cy: "18", r: "3", fill: started ? "#22c55e" : "#94a3b8", stroke: "none" });
 }
 
 function serviceIcon(role: PnhServiceRole, state: PnhServiceState): Component {
@@ -62,9 +59,9 @@ function serviceIcon(role: PnhServiceRole, state: PnhServiceState): Component {
   });
 }
 
-/** Ribbon 主体按服务角色区分；右下状态标记沿用实心/空心/菱形的既有语义。 */
+/** 网站存在 Web 端点时，圆点只表示 Web 监听状态，不受 API 健康检查影响。 */
 export function pnhServiceRibbonIcon(
-  service: Pick<ServiceRuntimeStatus, "health" | "lifecycle"> & {
+  service: PnhServiceState & {
     readonly definition: Pick<ServiceDefinition, "serviceRole">;
   },
 ): Component {

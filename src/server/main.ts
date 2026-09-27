@@ -49,11 +49,12 @@ const allowWindowsPortFallback = process.platform === "win32" && process.env.PHO
 
 const projectConfig = new PnhProjectConfigStore(projectRoot);
 const loadedServiceConfiguration = loadServiceConfiguration(projectRoot);
+const initialProjectDefinitions = projectConfig.serviceDefinitions();
 const configurationWarnings = new Map<string, string[]>();
 for (const warning of loadedServiceConfiguration.configurationErrors ?? []) {
   configurationWarnings.set(warning, ["服务配置文件"]);
 }
-for (const definition of loadedServiceConfiguration.definitions) {
+for (const definition of [...loadedServiceConfiguration.definitions, ...initialProjectDefinitions]) {
   for (const warning of definition.configurationErrors ?? []) {
     configurationWarnings.set(warning, [
       ...(configurationWarnings.get(warning) ?? []),
@@ -72,7 +73,7 @@ const adminPluginWorkspace = new PnhAdminPluginWorkspace(projectRoot, {
 });
 const manager = new PnhServiceManager([
   ...initialBuiltinDefinitions,
-  ...projectConfig.serviceDefinitions(),
+  ...initialProjectDefinitions,
 ], new PnhSystemTerminal(), undefined, undefined, undefined, new PnhServiceOwnershipStore(projectRoot));
 manager.setConfigurationErrors(loadedServiceConfiguration.configurationErrors ?? []);
 const handleApi = createApiHandler(

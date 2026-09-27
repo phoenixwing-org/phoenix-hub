@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PnhMainBlock from "./PnhMainBlock.vue";
 import { computed, ref, watch } from "vue";
 import PnwPageHeader from "phoenix-wing/layout/PnwPageHeader.vue";
 import PnwPageLayout from "phoenix-wing/layout/PnwPageLayout.vue";
@@ -187,8 +188,8 @@ async function verify(): Promise<void> {
         <small>可使用“修改目录”选择同一 moduleId 的有效开发目录；若不再需要该插件，可选择“清理并移除”。明确确认后，Hub 会删除目标槽位上的 symlink 并移除登记，但绝不会删除实体目录或普通文件。</small>
       </section>
 
-      <section v-if="repointing" class="panel repoint-panel">
-        <div class="section-title"><div><h3>修改插件开发目录</h3><p>先检查新目录；后端会再次权威校验并以事务方式更新两端链接。</p></div></div>
+      <PnhMainBlock v-if="repointing" title="修改插件开发目录">
+        <p>先检查新目录；后端会再次权威校验并以事务方式更新两端链接。</p>
         <div class="repoint-form">
           <label><span>新的产品或 admin-plugin 目录</span><input v-model="repointDirectory" type="text" placeholder="/本机/新的 Function worktree" @keyup.enter="inspectRepoint"></label>
           <div class="repoint-actions">
@@ -204,15 +205,15 @@ async function verify(): Promise<void> {
           </div>
           <p class="policy">边界：只更新 `.runtime/admin-plugins.json`、两个开发 symlink 与对应 `.git/info/exclude` marker；不执行 Pah register/install/enable、DDL、数据库或权限改动。</p>
         </div>
-      </section>
+      </PnhMainBlock>
 
       <section v-if="selected.candidate?.validationWarnings.length" class="panel policy-warnings">
         <strong>挂载前需要修正</strong>
         <p v-for="warning in selected.candidate.validationWarnings" :key="warning">{{ warning }}</p>
       </section>
 
-      <section class="panel">
-        <div class="section-title"><div><h3>开发挂载明细</h3><p>每条都由实时 lstat、readlink 与 Git 根目录检查得出；Git exclude 不控制工具扫描。</p></div></div>
+      <PnhMainBlock title="开发挂载明细">
+        <p>每条都由实时 lstat、readlink 与 Git 根目录检查得出；Git exclude 不控制工具扫描。</p>
         <div class="mount-grid">
           <article v-for="mount in selected.mounts" :key="mount.kind" class="mount-card">
             <div class="mount-title"><strong>{{ mount.label }}</strong><span :data-state="mount.linkState">{{ linkStateLabel(mount.linkState) }}</span></div>
@@ -225,20 +226,19 @@ async function verify(): Promise<void> {
             <p v-if="mount.detail" class="warning">{{ mount.detail }}</p>
           </article>
         </div>
-      </section>
+      </PnhMainBlock>
 
-      <section v-if="selected.recentOperation" class="panel operation-panel">
-        <div class="section-title"><div><h3>最近一次操作</h3><p>{{ selected.recentOperation.action === 'mount' ? '开发挂载' : selected.recentOperation.action === 'unmount' ? '开发卸载' : '重新指向' }} · {{ new Date(selected.recentOperation.completedAt).toLocaleString('zh-CN') }}</p></div></div>
+      <PnhMainBlock v-if="selected.recentOperation" title="最近一次操作" class="operation-panel">
+        <p>{{ selected.recentOperation.action === 'mount' ? '开发挂载' : selected.recentOperation.action === 'unmount' ? '开发卸载' : '重新指向' }} · {{ new Date(selected.recentOperation.completedAt).toLocaleString('zh-CN') }}</p>
         <ul>
           <li v-for="(change, index) in selected.recentOperation.changes" :key="`${change.path}-${index}`">
             <span>{{ change.kind === 'web' ? 'Vue' : 'Node' }}</span><strong>{{ change.action }}</strong><code>{{ change.path }}</code><small>{{ change.detail }}</small>
           </li>
         </ul>
-      </section>
+      </PnhMainBlock>
 
-      <section v-if="selected.candidate">
-        <article class="panel">
-          <div class="section-title"><div><h3>Manifest 与路由</h3><p>导航固定由 manifest + Pah lifecycle 物化。</p></div></div>
+      <PnhMainBlock v-if="selected.candidate" title="Manifest 与路由">
+          <p>导航固定由 manifest + Pah lifecycle 物化。</p>
           <dl class="facts">
             <div><dt>Source commit</dt><dd><code>{{ selected.candidate.sourceCommit?.slice(0, 12) || '未知' }}</code></dd></div>
             <div><dt>Manifest</dt><dd><code>{{ selected.candidate.manifestPath }}</code></dd></div>
@@ -246,8 +246,7 @@ async function verify(): Promise<void> {
             <div><dt>Artifacts</dt><dd><code>{{ selected.candidate.artifactsPath || '尚未生成' }}</code></dd></div>
           </dl>
           <ul class="route-list"><li v-for="route in selected.candidate.manifest.routes" :key="route.id"><code>{{ route.path }}</code><span>{{ route.title }}</span></li></ul>
-        </article>
-      </section>
+      </PnhMainBlock>
     </template>
 
     <section v-if="verifyResult" class="panel verify-panel">

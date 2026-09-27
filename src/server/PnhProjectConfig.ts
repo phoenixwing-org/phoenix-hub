@@ -88,7 +88,8 @@ function configuredEndpoints(
   const endpoints: LocalProjectEndpoint[] = [];
   const addEndpoint = (id: string, label: string, value: unknown): void => {
     const port = projectPort(value);
-    if (!port || endpoints.some((endpoint) => endpoint.port === port)) return;
+    // Static inspection is a fallback, not a list of every alternate script port.
+    if (!port || endpoints.some((endpoint) => endpoint.port === port || endpoint.id === id)) return;
     const uniqueEndpointId = endpoints.some((endpoint) => endpoint.id === id)
       ? `${id}-${endpoints.filter((endpoint) => endpoint.id.startsWith(id)).length + 1}`
       : id;
@@ -252,17 +253,27 @@ export class PnhProjectConfigStore {
 
   serviceDefinitions(): readonly ServiceDefinition[] {
     return this.#projects.map((project) => {
-      const candidate = this.inspect(project.directory);
-      if (!candidate.scripts.includes(project.script)) {
-        return configError(`本机项目 ${project.name} 已不存在 script：${project.script}`);
+      try {
+        const candidate = this.inspect(project.directory);
+        if (!candidate.scripts.includes(project.script)) {
+          return configError(`本机项目 ${project.name} 已不存在 script：${project.script}`);
+        }
+        return serviceDefinition({
+          ...project,
+          packageManager: candidate.packageManager,
+          endpoints: project.endpoints?.length
+            ? project.endpoints
+            : effectiveEndpoints(candidate.endpoints, project.port),
+        });
+      } catch (error) {
+        // Keep stale entries editable, but never allow an invalid project to start.
+        // Unexpected programming errors must still surface rather than be hidden.
+        if (!(error instanceof HubError)) throw error;
+        return {
+          ...serviceDefinition(project),
+          configurationErrors: [error.message],
+        };
       }
-      return serviceDefinition({
-        ...project,
-        packageManager: candidate.packageManager,
-        endpoints: project.endpoints?.length
-          ? project.endpoints
-          : effectiveEndpoints(candidate.endpoints, project.port),
-      });
     });
   }
 

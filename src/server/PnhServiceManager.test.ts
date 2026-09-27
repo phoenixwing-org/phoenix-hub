@@ -219,6 +219,29 @@ afterEach(async () => {
 });
 
 describe("PnhServiceManager", () => {
+  it("从本次启动日志发现真实动态端口且无需配置候选端口", async () => {
+    const service: ServiceDefinition = {
+      ...definition("dynamic-log-port", 1),
+      localProjectId: "local-dynamic-log-port",
+      endpoints: [],
+      command: { executable: process.execPath, args: [path.join(projectRoot, "test/fixtures/dynamic-port-service.mjs")] },
+    };
+    const persistence = new PnhMemoryServiceOwnershipStore();
+    const manager = new PnhServiceManager([service], undefined, undefined, undefined, undefined, persistence);
+    managers.push(manager);
+    await manager.start(service.id);
+    const status = await waitForState(manager, service.id, item => item.endpoints.length === 1 && item.health === "ready", 20_000);
+    expect(status.endpoints).toHaveLength(1);
+    expect(status.endpoints[0]).toMatchObject({ id: "web", reachable: true, healthy: true });
+    expect(status.endpoints[0].port).toBeGreaterThan(1);
+    expect(status.endpoints[0].openUrl).toBe(`http://127.0.0.1:${status.endpoints[0].port}/`);
+    expect(status.definition.endpoints).toEqual([]);
+    const recovered = new PnhServiceManager([service], undefined, undefined, undefined, undefined, persistence);
+    managers.push(recovered);
+    const restored = await recovered.status(service.id);
+    expect(restored.endpoints[0]?.port).toBe(status.endpoints[0].port);
+    expect(restored.endpoints[0]?.reachable).toBe(true);
+  }, 60_000);
   it("Hub 重启后精确复核并恢复原 ownership，不把同一 PGID 误报为 external", async () => {
     const port = await freePort();
     const service = definition("recover-owned", port);

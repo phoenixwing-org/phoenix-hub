@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { pnhCleanWingEnvironment, pnhResolveLocalWing } from "./wing-mode.mjs";
@@ -12,8 +13,17 @@ if (!new Set(["registry", "local"]).has(mode) || separator < 0 || !process.argv[
 
 function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
-    const executable = process.platform === "win32" && command === "pnpm" ? "pnpm.cmd" : command;
-    const child = spawn(executable, args, { stdio: "inherit", ...options });
+    // pnpm.cmd cannot be spawned directly on Windows. Reuse the CLI that
+    // launched this package script, without shell quoting or PATH lookup.
+    const pnpmCli = process.env.npm_execpath;
+    const usePnpmCli = command === "pnpm" && pnpmCli
+      && /\.[cm]?js$/iu.test(pnpmCli) && existsSync(pnpmCli);
+    if (process.platform === "win32" && command === "pnpm" && !usePnpmCli) {
+      reject(new Error("无法定位 pnpm JavaScript CLI，请通过 pnpm dev 或 pnpm wing 启动 Hub"));
+      return;
+    }
+    const executable = usePnpmCli ? process.execPath : command;
+    const child = spawn(executable, usePnpmCli ? [pnpmCli, ...args] : args, { stdio: "inherit", ...options, shell: false });
     child.on("error", reject);
     child.on("exit", (code, signal) => {
       if (signal) reject(new Error(`${executable} 被信号 ${signal} 中止`));
@@ -27,8 +37,7 @@ try {
   const cleanEnvironment = pnhCleanWingEnvironment(process.env);
   let environment = cleanEnvironment;
   if (mode === "registry") {
-    await run("pnpm", ["verify:wing"], { cwd: projectRoot, env: cleanEnvironment });
-    console.log("[Wing][REGISTRY] 使用 manifest/lockfile 精确版本");
+    await run(process.execPath, [path.join(projectRoot, "scripts/verify-wing-registry.mjs")], { cwd: projectRoot, env: cleanEnvironment });
   } else {
     const wing = pnhResolveLocalWing(projectRoot, process.env);
     console.log(`[Wing][LOCAL] ${wing.root} (${wing.version})`);

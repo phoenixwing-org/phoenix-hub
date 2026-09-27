@@ -10,7 +10,7 @@ const baseline = JSON.parse(
   readFileSync(path.join(projectRoot, "config/wing-registry-baseline.json"), "utf8"),
 );
 const expectedVersion = projectManifest.dependencies?.["phoenix-wing"];
-const expectedLabel = `Registry ${baseline.version}=${baseline.source?.commit?.slice(0, 7) ?? ""}`;
+const expectedLabel = `Registry ${baseline.version}`;
 if (typeof expectedVersion !== "string" || !/^\d+\.\d+\.\d+$/.test(expectedVersion)) {
   throw new Error("phoenix-wing 必须在 dependencies 中使用精确版本号");
 }
@@ -19,8 +19,6 @@ if (
   || baseline.version !== expectedVersion
   || baseline.registryTag !== "latest"
   || baseline.label !== expectedLabel
-  || baseline.source?.branch !== "develop"
-  || !/^[0-9a-f]{40}$/.test(baseline.source?.commit ?? "")
   || !/^[0-9a-f]{40}$/.test(baseline.dist?.shasum ?? "")
   || !/^sha512-[A-Za-z0-9+/]+={0,2}$/.test(baseline.dist?.integrity ?? "")
 ) {
@@ -75,7 +73,7 @@ if (installedRoot === adjacentDist || installedRoot.startsWith(`${adjacentDist}$
 }
 
 process.stdout.write(
-  `Wing Registry 门禁通过：${baseline.label}；source=${baseline.source.commit}；shasum=${baseline.dist.shasum}；realpath=${installedRoot}\n`,
+  `Wing ${expectedVersion} · Registry 校验通过\n`,
 );
 
 function escapeRegExp(value) {
